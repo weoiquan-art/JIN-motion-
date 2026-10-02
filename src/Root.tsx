@@ -3,6 +3,8 @@ import { MyComposition } from "./Composition";
 import { Intro } from "./intro/Intro";
 import { DURATION, FPS, HEIGHT, WIDTH } from "./intro/timeline";
 import { IntroV2 } from "./intro-v2/IntroV2";
+import * as Free from "./intro-free/beat.ts";
+import { IntroFree } from "./intro-free/IntroFree";
 import * as V2 from "./intro-v2/timeline.ts";
 import { TestComposition } from "./TestComposition";
 
@@ -33,6 +35,14 @@ export const RemotionRoot: React.FC = () => {
         fps={V2.FPS}
         width={V2.WIDTH}
         height={V2.HEIGHT}
+      />
+      <Composition
+        id="IntroFree"
+        component={IntroFree}
+        durationInFrames={Free.DURATION}
+        fps={Free.FPS}
+        width={Free.WIDTH}
+        height={Free.HEIGHT}
       />
     </>
   );

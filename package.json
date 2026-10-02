@@ -32,6 +32,10 @@
     "still:cloud": "remotion still src/index.ts --browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell",
     "audio:v2": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-v2.ts",
     "render:intro": "npm run render:cloud -- Intro out/intro.mp4",
-    "render:intro-v2": "npm run render:cloud -- IntroV2 out/intro-v2.mp4"
+    "render:intro-v2": "npm run render:cloud -- IntroV2 out/intro-v2.mp4",
+    "audio:free": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-free.ts",
+    "fonts:free": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-free.ts",
+    "render:intro-free": "npm run render:cloud -- IntroFree out/intro-free.mp4 --codec=h264",
+    "check:intro-free": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-intro-free.ts"
   }
 }
