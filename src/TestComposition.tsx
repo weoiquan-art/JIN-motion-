@@ -1,4 +1,5 @@
 import { AbsoluteFill, Img, OffthreadVideo, staticFile } from "remotion";
+import { FONT } from "./intro/fonts";
 
 export const TestComposition: React.FC = () => {
   return (
@@ -10,8 +11,8 @@ export const TestComposition: React.FC = () => {
           top: 180,
           color: "#ffffff",
           fontSize: 240,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
+          fontWeight: 900,
+          fontFamily: FONT,
           lineHeight: 1.1,
         }}
       >
