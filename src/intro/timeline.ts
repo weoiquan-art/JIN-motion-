@@ -20,9 +20,12 @@ export const T = {
   fadeOut: 435,
 } as const;
 
-// Frames rendered with multi-sample motion blur.
-export const BLUR_RANGE: [number, number] = [86, 336];
-export const BLUR_SAMPLES = 7;
+// Motion-blur samples per frame (more during the rapid cuts before the brake).
+export const blurSamples = (f: number) => {
+  if (f >= 298 && f <= 324) return 11;
+  if (f >= 86 && f <= 336) return 7;
+  return 1;
+};
 
 // ---------------------------------------------------------------- text
 export const LINE_A = { text: "我是 JIN。", en: "I'm JIN.", x: 0, y: 0, fs: 150 };
@@ -108,17 +111,62 @@ export const cardPeel = (c: CardDef) => {
 export const cardLand = (c: CardDef) => cardPeel(c) + FLIGHT;
 export const card = (shot: number) => CARDS[shot - 1];
 
+// Real footage. Loop length in project frames (clip duration × 30fps, floored);
+// OffthreadVideo resamples the 24fps sources to 30fps.
+export const CLIPS = {
+  portrait: { src: "clips/clip-portrait.mp4", frames: 53 },
+  wide: { src: "clips/clip-wide.mp4", frames: 48 },
+};
+
 // Generations that fail. Global order gives the REROLL ×n count.
-export const FAILS: { shot: number; f: number }[] = [
+// full: reached 100% and was rejected anyway (不满意重抽); otherwise it dies midway.
+export const FAILS: { shot: number; f: number; full?: boolean }[] = [
   { shot: 1, f: 152 },
-  { shot: 5, f: 206 },
+  { shot: 5, f: 206, full: true },
   { shot: 7, f: 239 },
   { shot: 8, f: 243 },
-  { shot: 11, f: 285 },
+  { shot: 11, f: 285, full: true },
   { shot: 9, f: 305 },
   { shot: 7, f: 311 },
 ];
 export const REROLL_HOLD = 9; // frames a failed card stays struck before regenerating
+
+// ---------------------------------------------------------------- background clutter
+// Queued shot frames piling up behind the action (素材堆), more and more over
+// the chaos. Grid + jitter, skipping cells that would sit on a word or card.
+const h01 = (n: number) => {
+  const s = Math.sin(n * 91.345 + 47.853) * 43758.5453;
+  return s - Math.floor(s);
+};
+const GHOST_ASPECTS = [16 / 9, 1, 4 / 5, 9 / 16, WIDE_ASPECT];
+const blocked = (x: number, y: number, w: number, h: number) =>
+  WORDS.some((wd) => Math.abs(x - wd.x) < ([...wd.zh].length * wd.fs) / 2 + w / 2 + 40 && Math.abs(y - wd.y) < wd.fs + h / 2) ||
+  CARDS.some((c) => Math.abs(x - c.x) < c.w / 2 + w / 2 + 50 && Math.abs(y - c.y) < cardH(c) / 2 + h / 2 + 90);
+
+export type GhostDef = { x: number; y: number; w: number; h: number; appear: number; v: number };
+export const GHOSTS: GhostDef[] = [];
+for (let gy = -850; gy <= 2100; gy += 400) {
+  for (let gx = 650; gx <= 5650; gx += 430) {
+    const k = GHOSTS.length * 7 + gx * 0.13 + gy * 0.71;
+    const aspect = GHOST_ASPECTS[Math.floor(h01(k) * GHOST_ASPECTS.length)];
+    const w = 170 + 150 * h01(k + 1);
+    const h = w / aspect;
+    const x = gx + (h01(k + 2) - 0.5) * 220;
+    const y = gy + (h01(k + 3) - 0.5) * 200;
+    if (blocked(x, y, w, h)) continue;
+    GHOSTS.push({ x, y, w, h, appear: Math.round(126 + 170 * h01(k + 4) ** 0.8), v: 1 + Math.floor(h01(k + 5) * 14) });
+  }
+}
+
+// Prompt lines typed out next to the words (写 prompt).
+export const PROMPTS: { text: string; x: number; y: number; appear: number }[] = [
+  { text: "prompt: girl peeking through a porthole, fisheye, 9:16", x: WORDS[0].x, y: WORDS[0].y - 190, appear: 129 },
+  { text: "seed 48213 · cfg 7.5 · steps 30", x: 1480, y: 560, appear: 147 },
+  { text: "negative: extra fingers, flicker, melted face", x: WORDS[1].x, y: WORDS[1].y - 190, appear: 163 },
+  { text: "v7, v8, v9 ... v12_final_final.mp4", x: WORDS[2].x, y: WORDS[2].y - 190, appear: 217 },
+  { text: "prompt: warrior in a sandstorm, wide shot, slow push-in", x: WORDS[3].x, y: WORDS[3].y - 190, appear: 251 },
+  { text: "queue 7/12 · ETA 02:14 · retrying", x: 4700, y: 1840, appear: 275 },
+];
 
 // ---------------------------------------------------------------- timeline (整理)
 export const TL = { y: 880, cx: 3000, h: 260, gap: 40 };
@@ -145,11 +193,13 @@ export type LogoDef = {
 };
 
 export const LOGO_BOX = 64;
+export const DEBRIS_SCALE = 2.5; // logo scale while idling as background debris
+// Each logo idles next to a word and is smashed away 4 frames after it slams.
 export const LOGOS: LogoDef[] = [
-  { file: "gpt-white.png", burst: [-140, -70], anchor: [WORDS[0].x + 420, WORDS[0].y - 40], hit: 129, v: [62, -18], spin: 21 },
-  { file: "claude.png", pixelated: true, burst: [140, -72], anchor: [WORDS[1].x - 560, WORDS[1].y - 60], hit: 163, v: [-58, -26], spin: -18 },
-  { file: "gemini.png", burst: [-128, 76], anchor: [WORDS[2].x - 400, WORDS[2].y + 60], hit: 217, v: [-55, 30], spin: 24 },
-  { file: "deepseek.png", burst: [150, 74], anchor: [WORDS[3].x + 440, WORDS[3].y - 70], hit: 251, v: [60, 22], spin: -22 },
+  { file: "gpt-white.png", burst: [-118, -52], anchor: [WORDS[0].x + 470, WORDS[0].y - 60], hit: WORDS[0].slam + 4, v: [46, -14], spin: 21 },
+  { file: "claude.png", pixelated: true, burst: [118, -54], anchor: [WORDS[1].x - 600, WORDS[1].y - 80], hit: WORDS[1].slam + 4, v: [-44, -20], spin: -18 },
+  { file: "gemini.png", burst: [-112, 56], anchor: [WORDS[2].x - 470, WORDS[2].y + 70], hit: WORDS[2].slam + 4, v: [-42, 24], spin: 24 },
+  { file: "deepseek.png", burst: [122, 54], anchor: [WORDS[3].x + 470, WORDS[3].y - 90], hit: WORDS[3].slam + 4, v: [46, 18], spin: -22 },
 ];
 export const logoEmerge = (i: number) => T.split + i * 3;
 export const logoFling = (i: number) => T.fling + i;
@@ -176,12 +226,12 @@ const FOLLOW: Ease = { kind: "spring", k: 150, d: 16, m: 0.8 };
 const RAPID: Ease = { kind: "spring", k: 520, d: 24, m: 0.5 };
 const BRAKE: Ease = { kind: "spring", k: 420, d: 26, m: 0.8 };
 
-export const CAM_START = { x: 0, y: 20, z: 0.9, r: 0 };
+export const CAM_START = { x: 0, y: 20, z: 1.22, r: 0 };
 const W = WORDS;
 export const CAM_MOVES: CamMove[] = [
-  { f: 0, x: 0, y: 0, z: 1.0, ease: { kind: "ease", dur: 70 } },
-  { f: 44, y: LINE_B.y, z: 1.06, ease: { kind: "ease", dur: 38 } },
-  { f: 76, x: CRACK.x, z: 1.14, ease: { kind: "ease", dur: 14 } },
+  { f: 0, x: 0, y: 30, z: 1.34, ease: { kind: "ease", dur: 70 } },
+  { f: 44, y: LINE_B.y - 40, z: 1.4, ease: { kind: "ease", dur: 38 } },
+  { f: 76, x: CRACK.x, y: LINE_B.y - 10, z: 1.5, ease: { kind: "ease", dur: 14 } },
   { f: T.slam, x: CRACK.x, y: CRACK.y, z: 4.2, r: -3, ease: SLAM, hit: 1 },
   { f: T.fling, x: CRACK.x + 120, y: CRACK.y - 80, z: 1.0, r: 5, ease: { kind: "spring", k: 200, d: 16, m: 0.8 }, hit: 0.6 },
   { f: 124, x: W[0].x, y: W[0].y + 40, z: 1.35, r: -5, ease: WHIP, hit: 0.8 },
@@ -214,7 +264,8 @@ export const END = {
 };
 
 // ---------------------------------------------------------------- misc
-export const UI_TEXT = "SHOT 0123456789:% GENERATING FAILED REROLL × DONE REC";
+export const UI_TEXT =
+  "SHOT 0123456789:% GENERATING FAILED REROLL × DONE REC QUEUED v" + PROMPTS.map((p) => p.text).join("");
 
 export const ALL_TEXT = [
   LINE_A.text,
@@ -245,6 +296,7 @@ export const AUDIO = {
   burst: T.split,
   hits: CAM_MOVES.filter((m) => m.hit && m.f > T.slam).map((m) => ({ f: m.f, s: m.hit ?? 0 })),
   slams: WORDS.map((w) => w.slam),
+  logoHits: LOGOS.map((l) => l.hit),
   lands: CARDS.map(cardLand),
   fails: FAILS.map((x) => x.f),
   brake: T.brake,
