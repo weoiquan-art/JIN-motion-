@@ -52,6 +52,8 @@ npm run render:intro-free  # 渲染 out/intro-free.mp4
 npm run check:intro-free   # 自检：节拍对齐、削波、静音段、每段响度
 ```
 
+经验总结：[docs/remotion/动效.md](docs/remotion/动效.md)、[docs/remotion/动画.md](docs/remotion/动画.md)
+
 ## Docs
 
 Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
