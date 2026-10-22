@@ -41,6 +41,8 @@ Claude 在 JIN 的仓库里找到案例库 video-exp-，照它的格式写了这
 
 第二问选了“JIN-motion- 加 CLAUDE.md”。所以这份记录放在本仓库 `docs/cases/`，技术规矩和流程整理进仓库根目录的 [CLAUDE.md](../../../CLAUDE.md)。video-exp- 那个分支留着没动，也没有删。
 
+整理时发现，本仓库之前的 Remotion 经验（[docs/remotion/](../../remotion/README.md)，分“动效”“动画”两份，从 IntroFree 总结）和 IntroFree 一起在另一个分支 `claude/remotion-intro-free-bta3s6` 上，没有合进来。为了让经验都在一处，Claude 把那个分支合进了 `claude/cool-wright-m5pihz`（只有 `package.json` 的脚本列表和 `Root.tsx` 的片子列表两处冲突，两边都保留；合并后 lint 通过，IntroFree 和北海片都能渲染），再把北海片的经验按条写进 docs/remotion，标“（北海片）”。
+
 ## 成片里有什么（按时间）
 
 依据：成片本身和[联系表](contact-sheet-every-2.5s.jpg)。下面是画面上的事实，“为什么这样做”放在下一节。
@@ -114,7 +116,7 @@ Claude 在 JIN 的仓库里找到案例库 video-exp-，照它的格式写了这
 - **节拍网格**：选 100 BPM 是因为在 30 帧／秒下一拍正好 18 帧，一小节 72 帧，60 秒正好 25 小节。
 - **运动模糊只在甩镜头时开**（每帧 6 次采样），平时 1 次。全程开会让渲染时间成倍增加（推断，没有实测）。
 - **Claude 听不到声音，只能量**：配乐 wav 用 ffmpeg ebur128 量出整体 -14.1 LUFS、响度范围 8.1 LU，峰值归一到约 -1 dBFS；用频谱图找嘶声。
-- 画面在 [`src/butterworth/`](../../../src/butterworth/)，配乐在 [`scripts/gen-audio-bw.ts`](../../../scripts/gen-audio-bw.ts)；做新片要守的规矩和流程整理在 [CLAUDE.md](../../../CLAUDE.md)。
+- 画面在 [`src/butterworth/`](../../../src/butterworth/)，配乐在 [`scripts/gen-audio-bw.ts`](../../../scripts/gen-audio-bw.ts)。做新片要守的规矩和流程在 [CLAUDE.md](../../../CLAUDE.md)，按条整理的技术经验在 [docs/remotion/](../../remotion/README.md)（动效、动画两份，北海片的条目标了“（北海片）”）。
 
 ## 证据与推断分级
 

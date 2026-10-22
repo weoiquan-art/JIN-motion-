@@ -54,6 +54,22 @@ npm run check:intro-free   # 自检：节拍对齐、削波、静音段、每段
 
 经验总结：[docs/remotion/动效.md](docs/remotion/动效.md)、[docs/remotion/动画.md](docs/remotion/动画.md)
 
+## Butterworth（槟城北海宣传片）
+
+60 秒、16:9。画面、字幕和配乐都由代码生成；地图海岸线来自 Natural Earth（公有领域）。
+
+- 时间轴和文字：`src/butterworth/timeline.ts`（100 BPM，每拍 18 帧；换场景在小节线上），画面和配乐共用
+- 场景：`src/butterworth/world/scenes/`
+- 案例记录：[docs/cases/2026-10-22-butterworth-promo-60s/case.md](docs/cases/2026-10-22-butterworth-promo-60s/case.md)
+
+```console
+npm run fonts               # 改了文字后：下载新汉字需要的字体切片（Intro、IntroV2、Butterworth 共用）
+npm run audio:bw            # 重新合成配乐 public/audio/butterworth.wav
+npm run render:butterworth  # 渲染 out/butterworth.mp4
+```
+
+经验总结和 IntroFree 共用同一套：[docs/remotion/](docs/remotion/README.md)。给 Claude 的仓库说明在 [CLAUDE.md](CLAUDE.md)。
+
 ## Docs
 
 Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
