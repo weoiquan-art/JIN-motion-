@@ -41,7 +41,8 @@ const H = 1080 * 1.1;
 
 // t = frames since this shot's own start
 const incoming = (enter: Enter, t: number): TState => {
-  const speed = (fn: (x: number) => number) => fn(t + 0.5) - fn(t - 0.5);
+  // distance moved since the previous frame, so the frame before the beat stays sharp
+  const speed = (fn: (x: number) => number) => fn(t) - fn(t - 1);
   switch (enter) {
     case "whip": {
       const u = (x: number) => whip(x, 0.25, 8);
@@ -66,7 +67,8 @@ const incoming = (enter: Enter, t: number): TState => {
 
 // t = frames since the *next* shot's start
 const outgoing = (nextEnter: Enter, t: number): TState => {
-  const speed = (fn: (x: number) => number) => fn(t + 0.5) - fn(t - 0.5);
+  // distance moved since the previous frame, so the frame before the beat stays sharp
+  const speed = (fn: (x: number) => number) => fn(t) - fn(t - 1);
   switch (nextEnter) {
     case "whip": {
       const u = (x: number) => whip(x, 0.25, 8);

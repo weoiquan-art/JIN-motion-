@@ -3,9 +3,8 @@
 // their own (props.layers): pictures, effects, text. All timing comes from
 // public/data/penang-bgm.json through the beat clock (beats.ts).
 
-import { Audio } from "@remotion/media";
 import React, { useMemo } from "react";
-import { AbsoluteFill, type CalculateMetadataFunction, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, type CalculateMetadataFunction, Html5Audio, staticFile, useVideoConfig } from "remotion";
 import { clamp } from "./anim";
 import { makeClock } from "./beats";
 import { missingGlyphs } from "./fonts";
@@ -42,7 +41,10 @@ export const PenangBridge: React.FC<PenangProps> = (props) => {
       {props.layers.photos ? <PhotoLayer shots={props.shots} clock={clock} look={props.look} /> : null}
       {props.layers.fx ? <FxLayer clock={clock} slots={slots} flares={props.flares} look={props.look} /> : null}
       {props.layers.text ? <TextLayer props={props} clock={clock} /> : null}
-      <Audio
+      {/* Html5Audio, not @remotion/media's <Audio>: with this mp3 the latter
+          rendered the music 25 ms late (the mp3 encoder delay was not
+          skipped), which shifts every hit off its cut. */}
+      <Html5Audio
         name="BGM"
         src={staticFile(music.src)}
         trimBefore={clock.trimBefore}

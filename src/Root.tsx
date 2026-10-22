@@ -61,7 +61,7 @@ export const RemotionRoot: React.FC = () => {
         component={PenangBridge}
         schema={penangSchema}
         calculateMetadata={calculatePenangMetadata}
-        durationInFrames={1863}
+        durationInFrames={1887}
         fps={30}
         width={1920}
         height={1080}
@@ -71,10 +71,10 @@ export const RemotionRoot: React.FC = () => {
             startBar: 40,
             bars: 28,
             preRoll: 0.1,
-            tail: 2.4,
+            tail: 3.2,
             fadeIn: 0.1,
             fadeOut: 2,
-            volume: 1,
+            volume: 0.7,
           },
           layers: { photos: true, fx: true, text: true },
           look: {

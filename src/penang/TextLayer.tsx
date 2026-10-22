@@ -185,14 +185,14 @@ const Credits: React.FC<{ frame: number; clock: Clock; lines: readonly string[] 
   const t = frame - clock.endFrame;
   if (t < 0) return null;
   return (
-    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 14, opacity: clamp((t - 6) / 10) }}>
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 16, opacity: clamp((t - 2) / 8) }}>
       {lines.map((line, i) => (
         <div
           key={i}
           style={{
             fontFamily: ZH_SANS,
             fontWeight: i === 0 ? 700 : 400,
-            fontSize: i === 0 ? 30 : 26,
+            fontSize: i === 0 ? 34 : 30,
             letterSpacing: i === 0 ? "0.3em" : "0.04em",
             color: i === 0 ? "#ffffff" : "rgba(255,255,255,0.78)",
             marginBottom: i === 0 ? 12 : 0,

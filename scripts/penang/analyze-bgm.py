@@ -10,8 +10,9 @@ What it does (all times in seconds from the start of the mp3):
      a high-resolution onset envelope (hop 128, n_fft 1024). The default
      grid lands late on this song (JIN measured about 18 ms).
   3. A straight line t = t0 + k * period is fitted to the refined beats
-     (the song does not change tempo). The fitted grid is what the video
-     uses; per-beat residuals are kept for the check.
+     (the song does not change tempo), then every beat follows the slow
+     drift of the attacks around that line (rolling median of 17 beats,
+     a few ms). `beats` is what the video uses; `beatsLine` is the line.
   4. Bar lines (4/4): the phase whose beats carry the largest chord change
      and low-end hit, then cross-checked against the section starts.
   5. Accents, sections (bar-level loudness + novelty), the music end, and a
@@ -123,6 +124,20 @@ n_grid = int(np.floor((music_end - first) / period)) + 1
 grid = first + period * np.arange(n_grid)
 resid_ms = (beats_refined - (t0 + period * k)) * 1000
 
+# 3b. The attacks wander a few ms around the straight line (about +-7 ms
+# over the song). Follow that slow drift: every beat gets the median
+# attack offset of the 17 beats around it (beats with a clear attack only).
+line = grid.copy()
+att = np.array([refine(t, 0.03) for t in line])
+r_att = att[:, 0] - line
+clear = (np.abs(r_att) < 0.025) & (att[:, 1] > 4)
+drift = np.zeros(len(line))
+for i in range(len(line)):
+    lo, hi = max(0, i - 8), min(len(line), i + 9)
+    sel = clear[lo:hi]
+    drift[i] = float(np.median(r_att[lo:hi][sel])) if sel.sum() >= 4 else 0.0
+grid = line + drift
+
 # Global offset check: average high-res onset strength around every grid
 # beat, as a function of a shift. The peak should sit at 0 ms.
 shifts_ms = np.arange(-60, 61, 2)
@@ -135,14 +150,15 @@ prof = np.array(prof)
 best_shift_ms = int(shifts_ms[int(np.argmax(prof))])
 
 # Same check for the default grid, to see how late it is.
-def mean_offset_ms(beats):
+def late_ms(beats):
+    # how much later than the attack a set of beats sits (positive = late)
     offs = []
     for t in beats:
         tr, _ = refine(t)
-        offs.append(tr - t)
+        offs.append(t - tr)
     return float(np.median(offs) * 1000)
 
-default_offset_ms = mean_offset_ms(beats_default)
+default_offset_ms = late_ms(beats_default)
 
 # ------------------------------------------------------------ 4. bar lines
 # Beat-synchronous features on the fitted grid.
@@ -262,6 +278,7 @@ out = {
             "residualMsMedianAbs": round(float(np.median(np.abs(resid_ms[mask]))), 2),
             "residualMsP95Abs": round(float(np.percentile(np.abs(resid_ms[mask]), 95)), 2),
         },
+        "driftMs": {"min": round(float(drift.min() * 1000), 2), "max": round(float(drift.max() * 1000), 2)},
         "offsetCheck": {
             "shiftsMs": shifts_ms.tolist(),
             "meanOnset": [round(v, 4) for v in prof.tolist()],
@@ -269,6 +286,7 @@ out = {
         },
     },
     "beats": [round(float(t), 4) for t in grid],
+    "beatsLine": [round(float(t), 4) for t in line],
     "beatAccent": [round(float(v), 3) for v in acc],
     "beatDb": [round(float(v), 2) for v in beat_db],
     "bars": bars,
@@ -282,8 +300,8 @@ OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
 print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")
 print(f"duration {duration:.3f}s  musicEnd {music_end:.3f}s")
 print(f"bpm {bpm:.4f}  period {period:.6f}s  firstBeat {first:.4f}s  t0(fit) {t0:.4f}")
-print(f"librosa default bpm {float(np.atleast_1d(tempo_default)[0]):.3f}; default beats late by median {default_offset_ms:.1f} ms")
+print(f"librosa default bpm {float(np.atleast_1d(tempo_default)[0]):.3f}; default beats are {default_offset_ms:+.1f} ms after the attacks (median)")
 print(f"grid fit: {mask.sum()}/{len(mask)} beats, |resid| median {np.median(np.abs(resid_ms[mask])):.2f} ms, p95 {np.percentile(np.abs(resid_ms[mask]), 95):.2f} ms")
-print(f"offset check best shift {best_shift_ms} ms")
+print(f"offset check best shift {best_shift_ms} ms; drift {drift.min()*1000:+.1f}..{drift.max()*1000:+.1f} ms")
 print(f"downbeat phase {phase} scores {[round(s, 3) for s in phase_scores]}")
 print("top hits:", top_hits)
