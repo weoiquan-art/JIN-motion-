@@ -4,7 +4,7 @@
 
 - 日期：2026-10-22（UTC+8）。约 08:58 JIN 提出要求（按会话开始时间），Claude 先问三项，JIN 选完后开始制作；09:30:56 成片和代码推送到本仓库；交付后 JIN 要求存经验，经过见下面“存经验的经过”。从提要求到推送约 33 分钟，其中包括 JIN 回答三个问题的时间。
 - 类型：地点宣传片，60 秒，16:9。画面、字幕和配乐全部由代码（Remotion）生成，**不经过视频生成模型**，所以没有视频提示词，也没有参考图。
-- 成片：本仓库 [`out/butterworth.mp4`](../../../out/butterworth.mp4)，提交 [de93c0d](https://github.com/weoiquan-art/JIN-motion-/commit/de93c0db32fa35528c6f10ff424c71ac57c8f795)（分支 `claude/cool-wright-m5pihz`，写这页时还没有并入 main）。1920×1080，30 帧／秒，H.264；AAC 48 kHz 立体声；60.0 秒；38.4 MB。本页另存每 2.5 秒一帧的联系表和 4 帧转场。
+- 成片：本仓库 [`out/butterworth.mp4`](../../../out/butterworth.mp4)，提交 [de93c0d](https://github.com/weoiquan-art/JIN-motion-/commit/de93c0db32fa35528c6f10ff424c71ac57c8f795)（分支 `claude/cool-wright-m5pihz`；本仓库没有 main，默认分支是 `claude/remotion-project-setup-8myjua`，后来已并入，见“存经验的经过”）。1920×1080，30 帧／秒，H.264；AAC 48 kHz 立体声；60.0 秒；38.4 MB。本页另存每 2.5 秒一帧的联系表和 4 帧转场。
 - 创作者反馈：**未提供**。JIN 收到成片后没有评价画面、节奏、文案或配乐，下一句就是存经验。
 - 声音：Claude 听不到声音，只量了响度、画了频谱图（见“技术记录”）。**配乐好不好听没有人验过。**
 
@@ -42,6 +42,11 @@ Claude 在 JIN 的仓库里找到案例库 video-exp-，照它的格式写了这
 第二问选了“JIN-motion- 加 CLAUDE.md”。所以这份记录放在本仓库 `docs/cases/`，技术规矩和流程整理进仓库根目录的 [CLAUDE.md](../../../CLAUDE.md)。video-exp- 那个分支留着没动，也没有删。
 
 整理时发现，本仓库之前的 Remotion 经验（[docs/remotion/](../../remotion/README.md)，分“动效”“动画”两份，从 IntroFree 总结）和 IntroFree 一起在另一个分支 `claude/remotion-intro-free-bta3s6` 上，没有合进来。为了让经验都在一处，Claude 把那个分支合进了 `claude/cool-wright-m5pihz`（只有 `package.json` 的脚本列表和 `Root.tsx` 的片子列表两处冲突，两边都保留；合并后 lint 通过，IntroFree 和北海片都能渲染），再把北海片的经验按条写进 docs/remotion，标“（北海片）”。
+
+之后（约 10:00）Claude 又问了两件事，JIN 都选了推荐项：
+
+- “并过去”：把 `claude/cool-wright-m5pihz` 并进仓库的默认分支 `claude/remotion-project-setup-8myjua`（新开的会话默认从这个分支开始，原来上面只有 IntroV2）。已快进（35d3c49 → 34d9de1，没有改写历史），以后一打开仓库就能读到 CLAUDE.md 和经验文档。
+- “删掉”：删 video-exp- 里那个分支。会话的 git 代理拒绝了删除分支的推送（HTTP 403），按环境说明不重试、不绕路，**那个分支还在**（提交 c9299d2，没有进 video-exp- 的 main）；要在 GitHub 上手动删。
 
 ## 成片里有什么（按时间）
 
