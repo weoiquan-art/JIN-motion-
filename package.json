@@ -9,9 +9,12 @@
     "@remotion/cli": "4.0.532",
     "@remotion/fonts": "4.0.532",
     "@remotion/google-fonts": "4.0.532",
+    "@remotion/media": "4.0.532",
+    "@remotion/zod-types": "4.0.532",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.532"
+    "remotion": "4.0.532",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.532",
@@ -38,6 +41,10 @@
     "audio:free": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-free.ts",
     "fonts:free": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-free.ts",
     "render:intro-free": "npm run render:cloud -- IntroFree out/intro-free.mp4 --codec=h264",
-    "check:intro-free": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-intro-free.ts"
+    "check:intro-free": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-intro-free.ts",
+    "fonts:penang": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-penang.ts",
+    "analyze:penang": "python3 scripts/penang/analyze-bgm.py",
+    "render:penang": "npm run render:cloud -- PenangBridge out/penang-bridge.mp4 --codec=h264",
+    "render:penang-720": "npm run render:cloud -- PenangBridge out/penang-bridge-720p.mp4 --codec=h264 --scale=0.6666666667"
   }
 }
