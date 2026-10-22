@@ -1,4 +1,6 @@
 import { Composition } from "remotion";
+import { Butterworth } from "./butterworth/Butterworth";
+import * as BW from "./butterworth/timeline.ts";
 import { MyComposition } from "./Composition";
 import { Intro } from "./intro/Intro";
 import { DURATION, FPS, HEIGHT, WIDTH } from "./intro/timeline";
@@ -33,6 +35,14 @@ export const RemotionRoot: React.FC = () => {
         fps={V2.FPS}
         width={V2.WIDTH}
         height={V2.HEIGHT}
+      />
+      <Composition
+        id="Butterworth"
+        component={Butterworth}
+        durationInFrames={BW.DURATION}
+        fps={BW.FPS}
+        width={BW.WIDTH}
+        height={BW.HEIGHT}
       />
     </>
   );

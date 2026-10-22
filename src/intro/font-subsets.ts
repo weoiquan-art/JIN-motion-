@@ -3,6 +3,7 @@
 export const NOTO_DIR = "noto-sans-sc";
 export const INTER_DIR = "inter";
 export const MONO_DIR = "jetbrains-mono";
+export const SERIF_DIR = "noto-serif-sc";
 
 type Range = [number, number];
 const parseRanges = (r: string): Range[] =>
