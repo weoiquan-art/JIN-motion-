@@ -209,9 +209,14 @@
 
 | 文件 | 规格 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| `out/penang-bridge.mp4` | 1920×1080，30 帧／秒，H.264（x264 slow, CRF 19），AAC 48 kHz 立体声，62.9 秒 | 见下方“最终文件” | 见下方 |
-| `out/penang-bridge-720p.mp4` | 1280×720，从 1080p 原始渲染用 lanczos 缩，CRF 20 | 同上 | 同上 |
-| `out/penang-bridge-720p-click.mp4` | 720p，每拍一声 click（小节第 1 拍音高更高），用来听卡点 | 同上 | 同上 |
+| `out/penang-bridge.mp4` | 1920×1080，30 帧／秒，1,887 帧，H.264（x264 slow，CRF 19，约 6 Mbps），AAC 48 kHz 立体声，62.9 秒 | 49.7 MB | `4e904fa7f2e6ce89f233b011f837a3b286a14d87fbfa3d2748999bc86f4660ac` |
+| `out/penang-bridge-720p.mp4` | 1280×720，从 1080p 原始渲染用 lanczos 缩，CRF 20 | 16.8 MB | `e742657db43057bc256977fcc15c8441259a20541e0b36c14a0edc8ccc607306` |
+| `out/penang-bridge-720p-click.mp4` | 720p，每拍一声 click（小节第 1 拍音高更高），用来听卡点 | 15.9 MB | `f5972076d4a288ee7265576efdd386bafd4f67da704b29d307aa4612ef68a9df` |
+
+- 三个文件都已经直接发给你（会话里的文件卡片）。
+- Remotion 渲出来的原始 1080p 是 83.0 MB（Remotion 默认 CRF，约 10.7 Mbps）；发给你的是用 x264 slow 重压的版本，画质基本无损。
+- 云端 4 核：1080p 渲染 6 分 23 秒，重压 2 分钟，540p 自检 1 分 50 秒。
+- 拍点数据 `public/data/penang-bgm.json` 的 SHA-256 是 `6a84c5a357bc77a8137eb760ee7f666f72e79826f088c53dcea30471140b5e52`。
 
 **卡点**（`scripts/penang/check-sync.py`）：
 
