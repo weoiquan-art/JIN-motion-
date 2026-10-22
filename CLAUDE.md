@@ -8,6 +8,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - [docs/remotion/动效.md](docs/remotion/动效.md)：镜头、转场、节拍、声画同步、自检
 - [docs/remotion/动画.md](docs/remotion/动画.md)：单个元素怎么动、扁平插画场景、地图
 - `docs/cases/`：每条片子的案例记录（见文末“案例”）
+- 可复用的代码在 skill 仓库 [weoiquan-art/code-motion-skill](https://github.com/weoiquan-art/code-motion-skill)（`jin-code-motion`）：踩拍曲线、摄像机、长卷视差、圆窗转场、地图、插画道具、天色、文字和标题、配乐合成器、自检工具，目录见它的 `references/代码目录.md`。新片要用就把 `library/` 里需要的文件复制进 `src/`；新做出来、以后还会用的代码也整理回那里。
 
 ## 片子
 
