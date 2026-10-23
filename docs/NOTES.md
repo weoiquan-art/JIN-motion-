@@ -23,6 +23,7 @@
   - `crowd.tsx`：市民走桥（`walk`）、马拉松（`marathon`），同一套透视桥面和人群
 - 每个新画面里都有东西踩拍，画面本身不跳。
 - 画法上避开和史实冲突：1894 的渡轮画成蒸汽船、甲板上没有车；1985 年的桥面画 4 车道；今天的渡轮画成双体客船。
+- 结尾照片上加了“JIN 制作”（JIN 看完第四版后要的）：`captions` 最后一条，第 118 拍出现在左边天空里。
 
 **新加的可调项**：`shots[i].kind` 多了 `ferry`／`jetty`／`build`／`walk`／`dusk`／`marathon`／`catamaran`；`mapMode` 多了 `hook`；`ease` 多了 `accel`（从静止加速）；地图镜头的 `rotate`（朝向）放宽到 ±180°。
 

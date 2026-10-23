@@ -753,6 +753,22 @@ export const RemotionRoot: React.FC = () => {
               typeBeats: 0,
               exit: 6,
             },
+            {
+              at: 118,
+              beats: 4.5,
+              style: "title",
+              title: "JIN 制作",
+              sub: "",
+              en: "",
+              subAt: 1,
+              place: "left",
+              size: 80,
+              slam: false,
+              dy: -90,
+              scrim: false,
+              typeBeats: 0,
+              exit: 8,
+            },
           ],
           flares: [
             {
