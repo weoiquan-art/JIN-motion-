@@ -1,4 +1,4 @@
-// PenangBridge: a ~60 s history short about the first Penang Bridge, cut to
+// PenangBridge: a ~68 s history short about the first Penang Bridge, cut to
 // the beat of a BGM. Three layers that can be switched off and rendered on
 // their own (props.layers): pictures, effects, text. All timing comes from
 // public/data/penang-bgm.json through the beat clock (beats.ts).
@@ -19,13 +19,7 @@ export const calculatePenangMetadata: CalculateMetadataFunction<PenangProps> = (
   durationInFrames: makeClock(props.music, FPS).durationInFrames,
 });
 
-const allText = (p: PenangProps) =>
-  [
-    ...p.captions.flatMap((c) => [c.kicker, c.title, c.sub, c.en, c.big]),
-    ...p.chapters.flatMap((c) => [c.label, c.en]),
-    ...p.years.map((y) => y.text),
-    ...p.credits.lines,
-  ].join("");
+const allText = (p: PenangProps) => [...p.captions.flatMap((c) => [c.title, c.sub, c.en]), ...p.credits.lines].join("");
 
 export const PenangBridge: React.FC<PenangProps> = (props) => {
   const { fps } = useVideoConfig();

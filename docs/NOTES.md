@@ -2,15 +2,87 @@
 
 槟城大桥（第一大桥）历史科普短片，Remotion 代码动画加照片，1920×1080、30 帧／秒。分镜见 [STORYBOARD.md](STORYBOARD.md)。
 
-- **现在是第二版**：从歌的 0:00 开始，开头是钩子问题，首尾接成 loop，68.1 秒（2,043 帧）。
-- 第 0 节是第二版的改动；第 1–8 节是第一版（2026-10-22 夜里，云端无人值守完成）的复盘，大部分做法仍然适用。
+- **现在是第三版**：宽银幕电影感，照片满屏运镜，地图、片名落日和夜景换成代码画面；钩子开头、首尾 loop、配乐和第二版一样，68.1 秒（2,043 帧）。
+- 第 0 节是第三版的改动，第 0.5 节是第二版的改动；第 1–8 节是第一版（2026-10-22 夜里，云端无人值守完成）的复盘，大部分做法仍然适用。第三版没有推 GitHub（JIN 说先不用存），只在本地提交。
 
 - 代码：`src/penang/`；在 `src/Root.tsx` 注册为 `PenangBridge`（默认 props 写在注册处，Studio 里改完会写回这里）
 - 拍点数据：`public/data/penang-bgm.json`（生成脚本 `scripts/penang/analyze-bgm.py`）
 - 自检脚本：`scripts/penang/check-sync.py`（卡点）、`scripts/penang/stills.mjs`（批量出静帧）
 - 照片、BGM、成片都没进 git（`.gitignore`）
 
-## 0. 第二版（JIN 看完第一版后的反馈）
+## 0. 第三版（JIN 看完第二版后的反馈）
+
+**JIN 的原话**：“感觉有点像ppt 能否更改呢”。追问后的回答：
+
+- 哪里像 PPT：“版式重复,画面不怎么动”
+- 方向：“电影感可以 然后我在想有些图片可能去掉换remotion 呢 对了你有载入remotion 官方skill吗 然后昨晚先不用存github 有时间我之后让你导出”
+
+**官方 skill 有没有载入**：有。
+
+- 第一晚用 `npx remotion skills add` 装进 `.agents/skills/`（`.claude/skills/` 里是软链接，两处都在 `.gitignore` 里，没提交）。
+- 第三版开工前又加载了一次总入口 `remotion-best-practices`，地图部分照 `remotion-maps` 的说明看过。
+- 照着做的：zod schema 加内联 defaultProps（Studio 里能改、改完写回 `Root.tsx`）；每个镜头一个带名字的 `<Sequence>`；素材用 `staticFile()`；所有动画只由当前帧决定。
+- 没照着做的地方和原因：
+
+| skill 建议 | 这条片子的做法 | 原因 |
+| --- | --- | --- |
+| `@remotion/media` 的 `<Audio>` | `Html5Audio` | 前者放这首 mp3 渲出来晚 25 ms（第 3 节） |
+| `<CanvasImage>` | `<Img>` | CanvasImage 按宽高画进位图，大幅平移和缩放时更糊 |
+| `@remotion/effects` 做光效 | CSS 渐变和混合模式 | 要 WebGL，云端容器没有 GPU |
+| `<Track>` 分轨 | 带名字的 `<Sequence>` | 要 Remotion 4.0.537，仓库是 4.0.532 |
+| 地图用 Mapbox／MapLibre／MapTiler | 自己写的 SVG 地图加针孔相机 | 前两种要 API key，MapLibre 要在线瓦片，云端网络都连不上 |
+| 开 Studio 预览 | 渲静帧和自检片 | 云端没有你能看到的浏览器；你本地 `npm run dev` 就能开 |
+
+**改了什么**（分镜见 [STORYBOARD.md](STORYBOARD.md) 第三版）：
+
+- 宽银幕：上下各 132 px 黑边（约 2.35:1），字幕放进下黑边。
+- 照片全部满屏，每个镜头都有看得出的运镜。老照片加胶片闪烁、片门抖动和划痕（随机，不跟拍）。
+- 去掉相框、左上角章节签、右上角年份。
+- 文字：底部一行字幕，加 6 个大号数字（1894、1982、225 米、13.5 公里、1985、1986）。英文只留在片名和地图地名上。
+- 换成代码画面：
+  - 三张 OSM 截图 → 代码画的槟威海峡地图（海岸线 Natural Earth），四种画法：渡轮来回、自由港到工业区、大桥画过海峡、工厂和港口之间的车流。
+  - b3 落日 → 代码画的大桥剪影，太阳卡在主跨两座塔之间。
+  - b4 蓝调航拍 → 代码画的夜里开上桥。
+- 每个镜头标了光源位置，每拍的光脉冲、重音光晕和横向光条从那里打出；另加漂浮光尘和暖亮部、青暗部的调色。
+- 片尾署名去掉 OSM（不再用 OSM 截图），加“海岸线 Natural Earth”。
+
+**新加和去掉的可调项**（Studio 的 props）：
+
+| 属性 | 用途 |
+| --- | --- |
+| `look.letterbox` | 黑边高度 px；0 = 不要黑边 |
+| `look.grade` | 调色强度：亮部偏暖、暗部偏青 |
+| `look.dust` | 漂浮光尘 |
+| `shots[i].kind` | `photo`／`map`／`sunset`／`night`／`closure` |
+| `shots[i].mapMode` | 地图镜头画什么：`ferries`／`why`／`bridge`／`industry` |
+| `shots[i].from / to` | 照片：x、y 是镜头能到的范围的百分比，scale 放大，rotate 转动；地图：x、y 是看向的地图点，scale 缩放，rotate 朝向，tilt 俯仰 |
+| `shots[i].ease` | 加了 `swoop`：前半段几乎不动，正中那一拍猛地飞到终点 |
+| `shots[i].light` | 这个镜头的光源位置和强度 |
+| `captions[i].style` | `title`（大标题）／`subtitle`（底部字幕）／`number`（大号数字，`sub` 是上方的小标签） |
+
+去掉了：`shots[i].style / print / overlay / kick`、`chapters`、`years`、`captions[i].kicker / big`、`look.hitX / hitY`（自动光晕改打在当时那个镜头的光源上）。
+
+**踩的坑**：
+
+- `object-fit: cover` 再以画面中心缩放，比 16:9 窄的照片左右没有余量，不能横摇。改成：图片元素按缩放倍数放大，偏移它自己溢出部分的 x%，`object-position` 也设 x%，两段加起来就是“能到的全部范围的 x%”。
+- 照片转一点角度，四角会露底；按 cos θ + (16/9)·sin θ 补一点放大。
+- 3D 地图：相机背后的点不先裁掉就投影，会翻到画面里来；多边形先按近平面裁剪再投影。
+- 地图的陆地和海颜色太近，斜看分不清哪里是岸；陆地调亮、海调暗，海岸线外加两层发光。
+- 印章的“划掉”线在开始前长度是 0，但圆头线帽还是画出一个红点；改成开始后才画。
+- SVG 模糊滤镜用在大面积的云和倒影上，落日那一段渲染明显变慢；改成径向渐变的椭圆。
+- 光尘随时间漂移，loop 首尾两帧对不上；首尾各淡出约 0.8 秒。
+- 横向光条原来横贯全屏，看起来像一道扫描线；改短，以光源为中心，两头渐隐。
+
+**第三版没做到、没核验的**：
+
+- 没推 GitHub（你说先不用存）。改动只在这个云端容器里做了本地提交；容器闲置久了会被回收，回收前要导出就说一声，我推到 `claude/penang-bridge-remotion-dnyaav` 分支。
+- 地图是示意：海岸线是 Natural Earth 的粗数据，大桥走向、主塔位置、工厂和港口都是示意，不是测绘。
+- 没在 Studio 里看过（云端没有你能看到的浏览器）；你本地 `npm run dev` 能开。
+- 整片连续播放的观感没人看过，只看了静帧和抽帧；声音和第二版一样，没人听过。
+
+**第三版自查**：见第 8 节末尾的“第三版”。
+
+## 0.5 第二版（JIN 看完第一版后的反馈）
 
 **JIN 的原话**：“请你使用bgm的开头作为配乐 图片不用和音乐一起蹦 ，开头我需要一个钩子 让人能够持续看下去的 例子 你可曾好奇<例子>吗？ 今天要科普的就是 槟州大桥 然后卡上第15-17 秒的beat 前面的例子可以是10多秒的”。
 
@@ -173,6 +245,10 @@
 | 渡轮还在开 | 维基百科：现在是 4 艘双体客船。老的车客渡轮 2020 年底停航（也有来源说 2018 年） | 写“渡轮还在开”。配图 c3、b5 是老式渡轮，拍摄年份未知 |
 | 1986 年起有大桥马拉松 | 槟城州政府的马拉松官网、The Star 都写 1986 年。维基百科把源头追到 1982 年的路跑 | 写“1986 年起” |
 | 地图上的峇六拜位置 | 示意：机场东边。代码画面里的海岸线来自北海片用的 Natural Earth 数据 | 示意，不是测绘 |
+| （第三版）地图上的“槟威海峡 PENANG STRAIT” | 中文维基百科“槟城港口”条目：“槟城港口分布在槟威海峡沿岸”（[镜像页](https://zhwiki.oracleblog.org/zh/%E6%AA%B3%E5%9F%8E%E6%B8%AF%E5%8F%A3)，搜索摘要） | 写“槟威海峡” |
+| （第三版）地图上北海一侧的“港口” | 同一条目：1974 年槟城港口迁到对岸威省的北海，以便处理更大的集装箱船 | 港口画在北海一侧，只写“港口”，不写港名 |
+| （第三版）地图上大桥主塔的位置、工厂和港口的样子 | 没有查 | 示意。主塔画在海上那段的三分之一处，高度夸大约 5 倍 |
+| （第三版）夜景里每个方向 3 条车道 | 维基百科 Penang Bridge、[ICE “Penang bridges”](https://www.ice.org.uk/what-is-civil-engineering/infrastructure-projects/penang-bridges)：2008 年 1 月开始拓宽，2009 年底完成，现在双向 6 车道（搜索摘要）；字幕写的“每天数万辆车”也是现在的车流 | 画现在的样子 |
 
 **没有写的**：施工死亡人数；1786 年开埠（片子没讲到这段，没写）；“桥曾因晚宴封闭”；第二大桥；造价（RM 8 亿左右，各来源说法不一）；承建商（韩国现代建设和 UEM）。
 
@@ -249,12 +325,14 @@
 | --- | --- |
 | 用歌的哪一段、多长 | `music.startBar`（歌的第几小节开始，见 JSON 的 `bars`）、`music.bars`。片长自动重算 |
 | 某个镜头早一点、晚一点、长一点 | `shots[i].at`（第几拍开始；第 n 小节 = 4n，可以写 0.5 拍）、`shots[i].beats` |
-| 换图 | `shots[i].src` |
-| 相片的位置和大小 | `shots[i].print.x / y / height / rotate` |
-| 运镜 | `shots[i].from` / `to`。满屏：焦点 %；相片：位移 px，外加缩放 |
+| 换图 | `shots[i].src`（`kind: "photo"` 的镜头） |
+| 换成代码画面 | `shots[i].kind`：`map`（地图，再用 `mapMode` 选画法）／`sunset`／`night`／`closure` |
+| 运镜 | `shots[i].from` / `to`，曲线 `shots[i].ease`。照片：x、y 是镜头能到的范围的 %（0 = 最左／最上，100 = 最右／最下），scale 放大，rotate 转动；地图：x、y 是看向的地图点（px），scale 缩放，rotate 朝向，tilt 俯仰；落日、夜景、合龙：x、y 是平移 px，scale 推近 |
 | 转场 | `shots[i].enter`：cut / flash / whip / whipUp / leak / zoom / fade / dark |
-| 字幕的文字、时间、位置、字号 | `captions[i]` |
-| 光效强弱 | `look.flare / pulse / leak / grain / vignette`；`flares` 里加减手动光晕 |
+| 光从哪里来 | `shots[i].light.x / y`（%）和 `amount` |
+| 字幕的文字、时间、位置、字号 | `captions[i]`；`style` 选 `title`／`subtitle`／`number` |
+| 光效强弱 | `look.flare / pulse / leak / dust / grain / vignette / grade`；`flares` 里加减手动光晕 |
+| 黑边 | `look.letterbox`（px，0 = 不要） |
 | 分层输出 | `layers.photos / fx / text`。例如只要文字层：关掉另外两层，渲成带透明通道的 ProRes 4444 或 WebM |
 
 拍号和时间对照（第二版，从歌的 0:00 开始）：第 0 拍 = 0.40 秒，之后每拍 +0.532 秒，每小节（4 拍）+2.128 秒。“今天要科普的就是”在第 28 拍（15.30 秒），第一记重拍“槟城大桥”在第 32 拍（17.43 秒），片子结束在第 127.2 拍（68.08 秒）。第一版是从第 40 小节开始，第 0 拍 = 0.11 秒。

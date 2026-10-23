@@ -1,11 +1,13 @@
 // Effect layer, drawn over the pictures and under the text. Every light here
-// follows the music: a warm pulse on each beat (beat accent × loudness), a
-// bloom with a horizontal streak on the strong hits the analysis found, white
-// flashes and light leaks on the cuts, plus grain and a vignette.
+// follows the music: a warm pulse on each beat (beat accent × loudness) and a
+// bloom with an anamorphic streak on the strong hits, both coming from the
+// light source of the shot on screen (`shot.light`); white flashes and light
+// leaks on the cuts; dust that glows a little on the beats. Then the grade,
+// grain, vignette and the letterbox bars.
 
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
-import { clamp, hash, hitEnv, inv, lerp } from "./anim";
+import { clamp, hash, hitEnv, inv, lerp, noise1 } from "./anim";
 import type { Clock } from "./beats";
 import type { Slot } from "./PhotoLayer";
 import type { PenangProps } from "./schema";
@@ -72,6 +74,54 @@ const LightLeak: React.FC<{ phase: number; strength: number; warm: string }> = (
   </AbsoluteFill>
 );
 
+// Dust in the air, at three depths: far specks drift slowly and stay sharp,
+// near ones are big soft discs that cross the frame faster (parallax).
+const DUST = Array.from({ length: 54 }, (_, i) => {
+  const d = hash(i * 9.1 + 2); // 0 = far, 1 = near
+  return {
+    x0: hash(i * 3.3) * 2000,
+    y0: hash(i * 5.7) * 1180,
+    d,
+    vx: (6 + 30 * d) * (hash(i * 1.1) > 0.3 ? 1 : -0.6),
+    vy: -(3 + 16 * d) * (0.5 + hash(i * 2.2)),
+    seed: i,
+  };
+});
+
+const Dust: React.FC<{ frame: number; fps: number; amount: number; glow: number }> = ({ frame, fps, amount, glow }) => {
+  if (amount <= 0) return null;
+  const t = frame / fps;
+  return (
+    <AbsoluteFill style={{ mixBlendMode: "screen", pointerEvents: "none" }}>
+      {DUST.map((p) => {
+        const x = (((p.x0 + p.vx * t + noise1(t * 0.25 + p.seed, 4) * 40 * p.d) % 2000) + 2000) % 2000 - 40;
+        const y = (((p.y0 + p.vy * t + noise1(t * 0.2 + p.seed, 7) * 20) % 1180) + 1180) % 1180 - 50;
+        const near = p.d > 0.78;
+        const size = near ? 26 + 46 * (p.d - 0.78) * 4.5 : 2 + 5 * p.d;
+        const twinkle = 0.65 + 0.35 * noise1(t * 1.2 + p.seed * 7, 2);
+        const a = amount * (near ? 0.22 : 0.3 + 0.5 * p.d) * twinkle * (0.75 + 0.5 * glow);
+        return (
+          <div
+            key={p.seed}
+            style={{
+              position: "absolute",
+              left: x,
+              top: y,
+              width: size,
+              height: size,
+              borderRadius: "50%",
+              background: near
+                ? "radial-gradient(circle, rgba(255,230,200,0.55) 0%, rgba(255,220,180,0.35) 55%, rgba(255,220,180,0.5) 64%, rgba(255,220,180,0) 70%)"
+                : "radial-gradient(circle, rgba(255,240,215,1) 0%, rgba(255,220,170,0.5) 40%, rgba(255,220,170,0) 70%)",
+              opacity: clamp(a),
+            }}
+          />
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
 export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: readonly Flare[]; look: Look }> = ({
   clock,
   slots,
@@ -83,6 +133,13 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
   // frames so the seam does not flicker.
   const loopFade = clock.loop ? 1 - inv(clock.durationInFrames - 20, clock.durationInFrames - 4, frame) : 1;
   const energy = clock.energy(frame) * loopFade;
+  // the dust drifts with time, so in a loop it is faded out at both ends
+  const dustFade = clock.loop ? inv(0, 24, frame) * (1 - inv(clock.durationInFrames - 26, clock.durationInFrames - 2, frame)) : 1;
+
+  // the shot on screen and its light source
+  let cur = slots[0];
+  for (const s of slots) if (s.start <= frame) cur = s;
+  const light = cur ? cur.shot.light : { x: 50, y: 40, amount: 1 };
 
   // 1. pulse on every beat
   const b = Math.floor(clock.beatAt(frame));
@@ -91,22 +148,26 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
     if (k < 0 || k > clock.beatsInFilm) continue;
     pulse += hitEnv(frame - clock.f(k), 5) * clock.accent(k);
   }
-  const pulseA = clamp(pulse * energy * look.pulse * 0.3, 0, 0.4);
+  const pulseA = clamp(pulse * energy * look.pulse * light.amount * 0.3, 0, 0.45);
 
-  // 2. blooms on the strong hits (automatic) and on the manual flares
-  const manual = flares.map((fl) => ({ frame: clock.f(fl.at), at: fl.at, strength: fl.strength, x: fl.x, y: fl.y }));
+  // 2. blooms on the strong hits (automatic, at the shot's light) and on the manual flares
+  const manual = flares.map((fl) => ({ frame: clock.f(fl.at), strength: fl.strength, x: fl.x, y: fl.y }));
   const auto = look.autoHits
     ? clock.hits
         .filter((h) => !flares.some((fl) => Math.abs(fl.at - h.beat) < 0.25))
-        .map((h) => ({ frame: h.frame, at: h.beat, strength: 0.5 + h.strength, x: look.hitX, y: look.hitY }))
+        .map((h) => ({ frame: h.frame, strength: (0.5 + h.strength) * light.amount, x: light.x, y: light.y }))
     : [];
   let bloom = { a: 0, x: 50, y: 44 };
   for (const ev of [...auto, ...manual]) {
     const a = hitEnv(frame - ev.frame, 13) * ev.strength * look.flare;
     if (a > bloom.a) bloom = { a, x: ev.x, y: ev.y };
   }
+  // the anamorphic streak: on the blooms, and faintly on the accented beats
+  const streak = Math.max(bloom.a, pulseA * 1.2);
+  const streakY = bloom.a > pulseA * 1.2 ? bloom.y : light.y;
+  const streakX = bloom.a > pulseA * 1.2 ? bloom.x : light.x;
 
-  // 3. flashes on the cuts
+  // 3. flashes and leaks on the cuts
   let flash = 0;
   let leak = 0;
   let leakPhase = 0;
@@ -123,12 +184,14 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
       }
     }
   }
+  const bar = look.letterbox;
 
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <Dust frame={frame} fps={clock.fps} amount={look.dust * dustFade} glow={clamp(pulse * energy)} />
       <AbsoluteFill
         style={{
-          background: `radial-gradient(ellipse at 74% 20%, ${look.warm} 0%, rgba(0,0,0,0) 62%)`,
+          background: `radial-gradient(ellipse 60% 70% at ${light.x}% ${light.y}%, ${look.warm} 0%, rgba(0,0,0,0) 70%)`,
           mixBlendMode: "screen",
           opacity: pulseA,
         }}
@@ -142,24 +205,36 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
               opacity: clamp(bloom.a * 0.75),
             }}
           />
-          <div
-            style={{
-              position: "absolute",
-              left: -400,
-              width: 2720,
-              top: `calc(${bloom.y}% - 5px)`,
-              height: 10,
-              background: `linear-gradient(90deg, rgba(0,0,0,0) 0%, ${look.warm} 32%, #ffffff ${bloom.x * 0.58 + 21}%, ${look.warm} 68%, rgba(0,0,0,0) 100%)`,
-              mixBlendMode: "screen",
-              opacity: clamp(bloom.a * bloom.a),
-              scale: `1 ${1 + 1.5 * bloom.a}`,
-            }}
-          />
           <AbsoluteFill style={{ backgroundColor: "#fff3e0", mixBlendMode: "screen", opacity: clamp(bloom.a * 0.1) }} />
         </>
       ) : null}
+      {streak > 0.01 ? (
+        <div
+          style={{
+            position: "absolute",
+            left: `calc(${streakX}% - 950px)`,
+            width: 1900,
+            top: `calc(${streakY}% - 7px)`,
+            height: 14,
+            background: "radial-gradient(closest-side, rgba(255,255,255,0.95) 0%, rgba(160,196,255,0.55) 30%, rgba(160,196,255,0) 100%)",
+            mixBlendMode: "screen",
+            opacity: clamp(streak * streak * 1.3),
+            scale: `${0.7 + 0.5 * streak} ${1 + 1.2 * streak}`,
+          }}
+        />
+      ) : null}
       {flash > 0.005 ? <AbsoluteFill style={{ backgroundColor: "#ffffff", opacity: clamp(flash) }} /> : null}
       {leak * look.leak > 0.005 ? <LightLeak phase={leakPhase} strength={leak * look.leak} warm={look.warm} /> : null}
+      {look.grade > 0 ? (
+        <>
+          <AbsoluteFill
+            style={{ background: "linear-gradient(180deg, rgba(255,168,92,0.55) 0%, rgba(255,168,92,0) 58%)", mixBlendMode: "soft-light", opacity: look.grade }}
+          />
+          <AbsoluteFill
+            style={{ background: "linear-gradient(0deg, rgba(18,104,128,0.6) 0%, rgba(18,104,128,0) 62%)", mixBlendMode: "soft-light", opacity: look.grade }}
+          />
+        </>
+      ) : null}
       <Grain frame={frame} amount={look.grain} />
       <AbsoluteFill
         style={{
@@ -167,6 +242,12 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
           opacity: look.vignette,
         }}
       />
+      {bar > 0 ? (
+        <>
+          <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: bar, backgroundColor: "#000" }} />
+          <div style={{ position: "absolute", left: 0, bottom: 0, width: 1920, height: bar, backgroundColor: "#000" }} />
+        </>
+      ) : null}
     </AbsoluteFill>
   );
 };

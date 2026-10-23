@@ -1,14 +1,16 @@
-// Picture layer: every shot of `props.shots`, in order, with its camera move,
-// its (optional) beat kicks and the transition into it. Shot boundaries are beats
-// (clock.cut), so every cut lands on the frame nearest to a beat of the BGM.
+// Picture layer: every shot of `props.shots`, in order, with its camera move
+// and the transition into it. Shot boundaries are beats (clock.cut), so every
+// cut lands on the frame nearest to a beat of the BGM. Photos fill the frame
+// and keep moving (push, pull, pan, tilt, a little roll); the code-drawn shots
+// (map, sunset, night, closure) get the same camera move as props.
 
 import React, { useMemo } from "react";
 import { AbsoluteFill, Img, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { clamp, drift, easeIn, easeInOut, easeOut, inv, kickEnv, lerp, whip } from "./anim";
+import { clamp, drift, easeIn, easeInOut, easeOut, hash, inv, lerp, noise1, whip } from "./anim";
 import type { Clock } from "./beats";
-import { MapOverlay, MAPS } from "./overlays";
-import { ClosureScene, NeedScene, WhyScene } from "./scenes";
-import type { PenangProps, Shot } from "./schema";
+import { MapWorld } from "./MapWorld";
+import { ClosureScene, NightScene, type SceneProps, SunsetScene } from "./scenes";
+import type { Move, PenangProps, Shot } from "./schema";
 
 type Enter = Shot["enter"];
 type Look = PenangProps["look"];
@@ -37,7 +39,25 @@ export const schedule = (shots: readonly Shot[], clock: Clock): Slot[] => {
   });
 };
 
-const easeOf = (shot: Shot) => (shot.ease === "inOut" ? easeInOut : shot.ease === "linear" ? (x: number) => clamp(x) : drift);
+// Eased progress of the camera move: p = linear progress over the shot,
+// tMid = frames since the shot's middle beat.
+const easeOf = (shot: Shot, p: number, tMid: number) => {
+  if (shot.ease === "inOut") return easeInOut(p);
+  if (shot.ease === "linear") return clamp(p);
+  if (shot.ease === "swoop") {
+    // drift a little for the first half, then fly to the end on the middle beat
+    return lerp(0.08 * clamp(p * 2), 1, whip(tMid, 0.2, 14));
+  }
+  return drift(p);
+};
+
+const mix = (a: Move, b: Move, e: number): Move => ({
+  x: lerp(a.x, b.x, e),
+  y: lerp(a.y, b.y, e),
+  scale: lerp(a.scale, b.scale, e),
+  rotate: lerp(a.rotate, b.rotate, e),
+  tilt: lerp(a.tilt, b.tilt, e),
+});
 
 type TState = { opacity: number; tx: number; ty: number; scale: number; smearX: number; smearY: number; black: number };
 const IDENTITY: TState = { opacity: 1, tx: 0, ty: 0, scale: 1, smearX: 0, smearY: 0, black: 0 };
@@ -61,7 +81,8 @@ const incoming = (enter: Enter, t: number): TState => {
     case "leak":
       return { ...IDENTITY, opacity: easeInOut(inv(-6, 6, t)) };
     case "zoom":
-      return { ...IDENTITY, scale: lerp(1.35, 1, whip(t, 0.15, 10)), opacity: inv(-0.75, 4, t) };
+      // mostly in on the beat frame itself, so that frame carries the jump
+      return { ...IDENTITY, scale: lerp(1.35, 1, whip(t, 0.15, 10)), opacity: inv(-0.75, 0.4, t) };
     case "fade":
       return { ...IDENTITY, opacity: easeInOut(inv(-8, 8, t)) };
     case "dark":
@@ -103,138 +124,99 @@ const combine = (a: TState, b: TState): TState => ({
   black: Math.max(a.black, b.black),
 });
 
-const toneFilter = (shot: Shot) => {
-  const tone = shot.tone === "bw" ? "grayscale(1) contrast(1.06)" : shot.tone === "aged" ? "sepia(0.3) saturate(0.85) contrast(0.95)" : "";
+// Old photos are shown like a film print: a little flicker and gate weave
+// (random, not on the beat), and the odd scratch on black-and-white ones.
+const toneFilter = (shot: Shot, frame: number) => {
+  const flicker = shot.tone === "none" ? 0 : 0.035 * noise1(frame * 0.9, 5);
+  const tone =
+    shot.tone === "bw"
+      ? `grayscale(1) contrast(1.12) brightness(${0.98 + flicker})`
+      : shot.tone === "aged"
+        ? `sepia(0.28) saturate(0.85) contrast(1.02) brightness(${1 + flicker})`
+        : "";
   const dim = shot.dim > 0 ? ` brightness(${1 - shot.dim})` : "";
   return (tone + dim).trim() || undefined;
 };
 
-const FullPhoto: React.FC<{ shot: Shot; p: number; kick: number; frame: number; clock: Clock; look: Look }> = ({
-  shot,
-  p,
-  kick,
-  frame,
-  clock,
-  look,
-}) => {
-  const e = easeOf(shot)(p);
-  const fx = lerp(shot.from.x, shot.to.x, e);
-  const fy = lerp(shot.from.y, shot.to.y, e);
-  const s = lerp(shot.from.scale, shot.to.scale, e) * (1 + kick);
-  const filter = toneFilter(shot);
-  if (shot.overlay !== "none") {
-    const map = MAPS[shot.overlay];
-    const cover = Math.max(1920 / map.w, 1080 / map.h);
-    const w = map.w * cover;
-    const h = map.h * cover;
-    const left = ((1920 - w) * fx) / 100;
-    const top = ((1080 - h) * fy) / 100;
-    return (
-      <AbsoluteFill style={{ overflow: "hidden" }}>
-        <AbsoluteFill style={{ scale: `${s}` }}>
-          <Img src={staticFile(shot.src)} style={{ position: "absolute", left, top, width: w, height: h, filter }} />
-          <AbsoluteFill style={{ backgroundColor: "#0b1f38", mixBlendMode: "multiply", opacity: 0.55 }} />
-          <svg viewBox={`0 0 ${map.w} ${map.h}`} style={{ position: "absolute", left, top, width: w, height: h, overflow: "visible" }}>
-            <MapOverlay kind={shot.overlay} frame={frame} atBeat={shot.at} beats={shot.beats} clock={clock} k={cover * s} warm={look.warm} accent={look.accent} />
-          </svg>
-        </AbsoluteFill>
-      </AbsoluteFill>
-    );
+const Scratches: React.FC<{ frame: number }> = ({ frame }) => {
+  const f = Math.floor(frame / 2);
+  const lines: React.ReactNode[] = [];
+  for (let i = 0; i < 2; i++) {
+    if (hash(f * 3.7 + i * 11) > 0.45) continue;
+    const x = hash(f * 1.9 + i * 5) * 1920;
+    lines.push(<div key={i} style={{ position: "absolute", left: x, top: 0, width: 1.5, height: 1080, backgroundColor: "rgba(255,255,255,0.22)" }} />);
   }
+  const speck = hash(f * 7.3) < 0.35;
   return (
-    <AbsoluteFill style={{ overflow: "hidden" }}>
-      <AbsoluteFill style={{ scale: `${s}`, transformOrigin: `${fx}% ${fy}%` }}>
-        <Img
-          src={staticFile(shot.src)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${fx}% ${fy}%`, filter }}
-        />
-      </AbsoluteFill>
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {lines}
+      {speck ? (
+        <div style={{ position: "absolute", left: hash(f * 2.3) * 1900, top: hash(f * 4.1) * 1060, width: 5, height: 4, borderRadius: 3,
+          backgroundColor: "rgba(20,20,20,0.7)" }} />
+      ) : null}
     </AbsoluteFill>
   );
 };
 
-// A photo as a print, floating over its own blurred, darkened copy. The copy
-// is drawn small and scaled up, so the heavy blur stays cheap to render.
-const PrintPhoto: React.FC<{ shot: Shot; p: number; kick: number }> = ({ shot, p, kick }) => {
-  const e = easeOf(shot)(p);
-  const dx = lerp(shot.from.x, shot.to.x, e);
-  const dy = lerp(shot.from.y, shot.to.y, e);
-  const s = lerp(shot.from.scale, shot.to.scale, e) * (1 + kick);
-  const framed = shot.tone !== "none";
-  const filter = toneFilter(shot);
+// The camera over a photo. The image element is the frame scaled by
+// `mv.scale`, filled with object-fit: cover; it is offset by x % / y % of its
+// own overflow and the picture inside it by the same x % / y % of the cover
+// overflow, so together x and y always mean "that far across everything the
+// camera can reach", whatever the photo's aspect ratio. A roll is covered by
+// a little extra zoom so the corners never show.
+const FullPhoto: React.FC<{ shot: Shot; mv: Move; frame: number }> = ({ shot, mv, frame }) => {
+  const old = shot.tone !== "none";
+  const wx = old ? noise1(frame / 2.3, 3) * 1.2 : 0;
+  const wy = old ? noise1(frame / 2.9, 8) * 1.2 : 0;
+  const th = (Math.abs(mv.rotate) * Math.PI) / 180;
+  const roll = Math.cos(th) + (1920 / 1080) * Math.sin(th);
+  const w = 1920 * mv.scale;
+  const h = 1080 * mv.scale;
   return (
     <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#05070c" }}>
-      <div
-        style={{
-          position: "absolute",
-          left: -120,
-          top: -68,
-          width: 480,
-          height: 270,
-          transformOrigin: "0 0",
-          scale: `${(2160 / 480) * (1.02 + 0.05 * e)}`,
-          translate: `${-dx * 0.3}px ${-dy * 0.3}px`,
-        }}
-      >
+      <AbsoluteFill style={{ rotate: `${mv.rotate}deg`, scale: `${roll}`, translate: `${wx}px ${wy}px` }}>
         <Img
           src={staticFile(shot.src)}
           style={{
-            width: "100%",
-            height: "100%",
+            position: "absolute",
+            left: -(w - 1920) * (mv.x / 100),
+            top: -(h - 1080) * (mv.y / 100),
+            width: w,
+            height: h,
             objectFit: "cover",
-            filter: `blur(9px) brightness(${0.42 * (1 - shot.dim * 0.6)}) saturate(1.25)${shot.tone === "bw" ? " grayscale(1)" : ""}`,
+            objectPosition: `${mv.x}% ${mv.y}%`,
+            filter: toneFilter(shot, frame),
           }}
         />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          left: shot.print.x + dx,
-          top: shot.print.y + dy,
-          translate: "-50% -50%",
-          rotate: `${shot.print.rotate}deg`,
-          scale: `${s}`,
-        }}
-      >
-        <div
-          style={{
-            padding: framed ? "18px 18px 24px" : 0,
-            backgroundColor: "#efe8da",
-            borderRadius: framed ? 2 : 6,
-            overflow: "hidden",
-            boxShadow: "0 40px 90px rgba(0,0,0,0.6), 0 10px 24px rgba(0,0,0,0.45)",
-          }}
-        >
-          <Img src={staticFile(shot.src)} style={{ height: shot.print.height, display: "block", filter }} />
-        </div>
-      </div>
+      </AbsoluteFill>
+      {shot.tone === "bw" ? <Scratches frame={frame} /> : null}
     </AbsoluteFill>
   );
 };
 
 const ShotContent: React.FC<{ slot: Slot; frame: number; clock: Clock; look: Look }> = ({ slot, frame, clock, look }) => {
   const { shot } = slot;
-  const scene = { frame, atBeat: shot.at, clock, warm: look.warm, accent: look.accent };
-  if (shot.kind === "why") return <WhyScene {...scene} />;
-  if (shot.kind === "need") return <NeedScene {...scene} />;
-  if (shot.kind === "closure") return <ClosureScene {...scene} />;
+  const len = Math.max(1, slot.end - 1 - slot.start);
   // 1 on the shot's last frame, so a loop's last frame matches its first
-  const p = clamp((frame - slot.start) / Math.max(1, slot.end - 1 - slot.start), -0.2, 1.25);
-  // a small push on every beat, weighted by the beat's accent and the loudness
-  let kick = 0;
-  if (shot.kick > 0) {
-    const b = Math.floor(clock.beatAt(frame));
-    for (let k = b - 2; k <= b + 1; k++) {
-      if (k < shot.at || k >= shot.at + shot.beats) continue;
-      kick += kickEnv(frame - clock.f(k)) * (0.35 + clock.accent(k)) * clock.energy(frame);
-    }
-    kick *= shot.kick * 0.016;
-  }
-  return shot.style === "print" ? (
-    <PrintPhoto shot={shot} p={p} kick={kick} />
-  ) : (
-    <FullPhoto shot={shot} p={p} kick={kick} frame={frame} clock={clock} look={look} />
-  );
+  const p = clamp((frame - slot.start) / len, -0.2, 1.25);
+  const e = easeOf(shot, p, frame - clock.f(shot.at + shot.beats / 2));
+  const mv = mix(shot.from, shot.to, e);
+  const scene: SceneProps = {
+    frame,
+    b: clock.beatAt(frame) - shot.at,
+    at: (beat: number) => clock.f(shot.at + beat),
+    beats: shot.beats,
+    e,
+    mv,
+    fps: clock.fps,
+    warm: look.warm,
+    accent: look.accent,
+  };
+  if (shot.kind === "map") return <MapWorld mode={shot.mapMode} {...scene} />;
+  if (shot.kind === "sunset") return <SunsetScene {...scene} />;
+  if (shot.kind === "night") return <NightScene {...scene} />;
+  if (shot.kind === "closure") return <ClosureScene {...scene} />;
+  return <FullPhoto shot={shot} mv={mv} frame={frame} />;
 };
 
 const ShotFrame: React.FC<{ slot: Slot; from: number; clock: Clock; look: Look }> = ({ slot, from, clock, look }) => {
