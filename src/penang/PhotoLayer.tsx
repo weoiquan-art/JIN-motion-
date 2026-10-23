@@ -1,5 +1,5 @@
 // Picture layer: every shot of `props.shots`, in order, with its camera move,
-// its beat kicks and the transition into it. Shot boundaries are beats
+// its (optional) beat kicks and the transition into it. Shot boundaries are beats
 // (clock.cut), so every cut lands on the frame nearest to a beat of the BGM.
 
 import React, { useMemo } from "react";
@@ -26,12 +26,18 @@ export type Slot = {
   readonly nextStart: number;
 };
 
-export const schedule = (shots: readonly Shot[], clock: Clock): Slot[] =>
-  shots.map((shot, i) => {
+// Shot frames, clamped to the film: a shot may start before beat 0 (the
+// opening frames, before the first downbeat) or run past the end of a loop.
+export const schedule = (shots: readonly Shot[], clock: Clock): Slot[] => {
+  const cut = (beat: number) => Math.min(clock.durationInFrames, Math.max(0, clock.cut(beat)));
+  return shots.map((shot, i) => {
     const next = shots[i + 1] ?? null;
-    const end = clock.cut(shot.at + shot.beats);
-    return { shot, start: clock.cut(shot.at), end, next, nextStart: next ? clock.cut(next.at) : end };
+    const end = cut(shot.at + shot.beats);
+    return { shot, start: cut(shot.at), end, next, nextStart: next ? cut(next.at) : end };
   });
+};
+
+const easeOf = (shot: Shot) => (shot.ease === "inOut" ? easeInOut : shot.ease === "linear" ? (x: number) => clamp(x) : drift);
 
 type TState = { opacity: number; tx: number; ty: number; scale: number; smearX: number; smearY: number; black: number };
 const IDENTITY: TState = { opacity: 1, tx: 0, ty: 0, scale: 1, smearX: 0, smearY: 0, black: 0 };
@@ -111,7 +117,7 @@ const FullPhoto: React.FC<{ shot: Shot; p: number; kick: number; frame: number; 
   clock,
   look,
 }) => {
-  const e = drift(p);
+  const e = easeOf(shot)(p);
   const fx = lerp(shot.from.x, shot.to.x, e);
   const fy = lerp(shot.from.y, shot.to.y, e);
   const s = lerp(shot.from.scale, shot.to.scale, e) * (1 + kick);
@@ -129,7 +135,7 @@ const FullPhoto: React.FC<{ shot: Shot; p: number; kick: number; frame: number; 
           <Img src={staticFile(shot.src)} style={{ position: "absolute", left, top, width: w, height: h, filter }} />
           <AbsoluteFill style={{ backgroundColor: "#0b1f38", mixBlendMode: "multiply", opacity: 0.55 }} />
           <svg viewBox={`0 0 ${map.w} ${map.h}`} style={{ position: "absolute", left, top, width: w, height: h, overflow: "visible" }}>
-            <MapOverlay kind={shot.overlay} frame={frame} atBeat={shot.at} clock={clock} k={cover * s} warm={look.warm} accent={look.accent} />
+            <MapOverlay kind={shot.overlay} frame={frame} atBeat={shot.at} beats={shot.beats} clock={clock} k={cover * s} warm={look.warm} accent={look.accent} />
           </svg>
         </AbsoluteFill>
       </AbsoluteFill>
@@ -150,7 +156,7 @@ const FullPhoto: React.FC<{ shot: Shot; p: number; kick: number; frame: number; 
 // A photo as a print, floating over its own blurred, darkened copy. The copy
 // is drawn small and scaled up, so the heavy blur stays cheap to render.
 const PrintPhoto: React.FC<{ shot: Shot; p: number; kick: number }> = ({ shot, p, kick }) => {
-  const e = drift(p);
+  const e = easeOf(shot)(p);
   const dx = lerp(shot.from.x, shot.to.x, e);
   const dy = lerp(shot.from.y, shot.to.y, e);
   const s = lerp(shot.from.scale, shot.to.scale, e) * (1 + kick);
@@ -212,7 +218,8 @@ const ShotContent: React.FC<{ slot: Slot; frame: number; clock: Clock; look: Loo
   if (shot.kind === "why") return <WhyScene {...scene} />;
   if (shot.kind === "need") return <NeedScene {...scene} />;
   if (shot.kind === "closure") return <ClosureScene {...scene} />;
-  const p = clamp((frame - slot.start) / Math.max(1, slot.end - slot.start), -0.2, 1.25);
+  // 1 on the shot's last frame, so a loop's last frame matches its first
+  const p = clamp((frame - slot.start) / Math.max(1, slot.end - 1 - slot.start), -0.2, 1.25);
   // a small push on every beat, weighted by the beat's accent and the loudness
   let kick = 0;
   if (shot.kick > 0) {

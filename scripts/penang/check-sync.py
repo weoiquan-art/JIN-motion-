@@ -48,22 +48,25 @@ start_bar = args.start_bar if args.start_bar is not None else prop("startBar", i
 n_bars = args.bars if args.bars is not None else prop("bars", int, 28)
 pre_roll = args.pre_roll if args.pre_roll is not None else prop("preRoll", float, 0.1)
 shots_block = block[block.index("shots: ["):block.index("captions: [")]
-cuts = [(float(a), e) for a, e in re.findall(r"\bat: ([0-9.]+),\s*\n\s*beats: [0-9.]+,\s*\n\s*enter: \"(\w+)\"", shots_block)]
 
 bgm = json.loads(Path("public/data/penang-bgm.json").read_text())
 beats = bgm["beats"]
 b0 = bgm["bars"][start_bar]["beat"]
 FPS = 30
-trim = math.floor((beats[b0] - pre_roll) * FPS)
+trim = max(0, math.floor((beats[b0] - pre_roll) * FPS))
 a0 = trim / FPS
 
 
 def film_time(beat):
     k = math.floor(beat)
     fr = beat - k
+    if b0 + k < 0:  # before the song's first beat (a shot that opens the film)
+        return beats[0] + (b0 + k + fr) * bgm["tempo"]["period"] - a0
     return beats[b0 + k] + fr * (beats[b0 + k + 1] - beats[b0 + k]) - a0
 
 
+cuts = [(float(a), e) for a, e in re.findall(r"\bat: (-?[0-9.]+),\s*\n\s*beats: [0-9.]+,\s*\n\s*enter: \"(\w+)\"", shots_block)]
+cuts = [(a, e) for a, e in cuts if film_time(a) * 30 >= 1]  # a shot that opens the film has no cut to check
 grid = np.array([film_time(i) for i in range(n_bars * 4 + 1)])
 
 # ------------------------------------------------------------- 1. audio
@@ -117,6 +120,11 @@ for at, enter in cuts:
 print("cuts (biggest frame difference within +-3 frames of the beat frame):")
 print("\n".join(rows))
 print(f"cuts off their beat frame: {bad} of {len(cuts)} (leak/fade crossfades may peak within +-3 frames)")
+loop = re.search(r"\bloop: (true|false)", block)
+if loop and loop.group(1) == "true":
+    seam = float(np.abs(frames[-1] - frames[0]).mean())
+    typical = float(np.median(delta[1:]))
+    print(f"loop seam: last frame vs first frame mean difference {seam:.2f} (median frame-to-frame change {typical:.2f})")
 
 # ------------------------------------------------------------- 3. click
 if args.click:

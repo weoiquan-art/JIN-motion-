@@ -1,6 +1,6 @@
 // Text layer, always on top of the effects so the light never washes it out.
 // Captions, the chapter label (top left), the year chip (top right) and the
-// credits after the last downbeat. Every entrance is timed in beats.
+// credits. Every entrance is timed in beats.
 
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
@@ -29,13 +29,51 @@ const Reveal: React.FC<{ t: number; children: React.ReactNode; style?: React.CSS
   );
 };
 
-const CaptionBlock: React.FC<{ c: Caption; frame: number; clock: Clock; look: Look }> = ({ c, frame, clock, look }) => {
+// A title typed out on the beat grid: character i lands on the eighth note
+// nearest to at + i * typeBeats / n. The whole line is laid out from the
+// start (hidden characters are transparent), so nothing shifts while typing.
+const Typed: React.FC<{ text: string; c: Caption; frame: number; clock: Clock; style: React.CSSProperties }> = ({
+  text,
+  c,
+  frame,
+  clock,
+  style,
+}) => {
+  const chars = [...text];
+  const n = Math.max(1, chars.filter((ch) => ch.trim() !== "").length);
+  let k = 0;
+  return (
+    <div style={style}>
+      {chars.map((ch, i) => {
+        if (ch.trim() === "") return <span key={i}>{ch}</span>;
+        const at = c.at + Math.round(((k++ * c.typeBeats) / n) * 2) / 2;
+        const t = frame - clock.f(at);
+        const a = clamp(pop(t));
+        return (
+          <span key={i} style={{ display: "inline-block", opacity: a, translate: `0 ${(1 - whip(t, 0.8, 6)) * 0.25}em` }}>
+            {ch}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+// Drawn in two passes (all scrims, then all text), so one caption's dark
+// backing never covers another caption's letters.
+const CaptionBlock: React.FC<{ c: Caption; frame: number; clock: Clock; look: Look; part: "scrim" | "text" }> = ({
+  c,
+  frame,
+  clock,
+  look,
+  part,
+}) => {
   const start = clock.f(c.at);
   const end = clock.f(c.at + c.beats);
   if (frame < start - 1 || frame > end) return null;
   const t = frame - start;
   const ts = frame - clock.f(c.at + c.subAt);
-  const out = easeIn(inv(end - 7, end, frame));
+  const out = c.exit > 0 ? easeIn(inv(end - c.exit, end, frame)) : 0;
   const centred = c.place === "center" || c.place === "top";
   const align = centred ? "center" : "flex-start";
   const slam = c.slam ? whip(t, 1.4, 8) : 1;
@@ -63,9 +101,11 @@ const CaptionBlock: React.FC<{ c: Caption; frame: number; clock: Clock; look: Lo
             ? "radial-gradient(ellipse at 50% 0%, rgba(3,6,12,0.7) 0%, rgba(3,6,12,0) 55%)"
             : "radial-gradient(ellipse at 50% 50%, rgba(3,6,12,0.6) 0%, rgba(3,6,12,0) 60%)";
 
+  if (part === "scrim") {
+    return c.scrim ? <AbsoluteFill style={{ background: scrim, opacity: clamp(pop(t + 2)) * (1 - out) }} /> : null;
+  }
   return (
     <AbsoluteFill style={{ opacity: 1 - out, translate: `0 ${-14 * out}px` }}>
-      <AbsoluteFill style={{ background: scrim, opacity: clamp(pop(t + 2)) }} />
       {c.big ? (
         <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
           <div
@@ -84,13 +124,39 @@ const CaptionBlock: React.FC<{ c: Caption; frame: number; clock: Clock; look: Lo
           </div>
         </AbsoluteFill>
       ) : null}
-      <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: align, textAlign: centred ? "center" : "left", ...pos }}>
+      <div
+        style={{
+          position: "absolute",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: align,
+          textAlign: centred ? "center" : "left",
+          translate: `0 ${c.dy}px`,
+          ...pos,
+        }}
+      >
         {c.kicker ? (
           <Reveal t={t} style={{ fontFamily: ZH_SANS, fontWeight: 700, fontSize: 30, letterSpacing: "0.16em", color: look.accent, marginBottom: 14 }}>
             {c.kicker}
           </Reveal>
         ) : null}
-        {c.slam ? (
+        {c.typeBeats > 0 ? (
+          <Typed
+            text={c.title}
+            c={c}
+            frame={frame}
+            clock={clock}
+            style={{
+              fontFamily: ZH_SERIF,
+              fontWeight: 800,
+              fontSize: c.size,
+              lineHeight: 1.12,
+              letterSpacing: "0.06em",
+              color: "#fff8ee",
+              textShadow: "0 6px 34px rgba(0,0,0,0.55)",
+            }}
+          />
+        ) : c.slam ? (
           <div
             style={{
               fontFamily: ZH_SERIF,
@@ -181,12 +247,40 @@ const Year: React.FC<{ frame: number; clock: Clock; years: PenangProps["years"];
   );
 };
 
-const Credits: React.FC<{ frame: number; clock: Clock; lines: readonly string[] }> = ({ frame, clock, lines }) => {
-  const t = frame - clock.endFrame;
-  if (t < 0) return null;
+const Credits: React.FC<{ frame: number; clock: Clock; credits: PenangProps["credits"] }> = ({ frame, clock, credits }) => {
+  const start = clock.f(credits.at);
+  const end = clock.f(credits.at + credits.beats);
+  if (frame < start || frame > end) return null;
+  const opacity = clamp((frame - start) / 8) * (1 - clamp((frame - (end - 8)) / 8));
+  if (credits.place === "bottom") {
+    // small, over the picture, so a loop can end on the opening frame
+    return (
+      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", opacity }}>
+        <AbsoluteFill style={{ background: "linear-gradient(rgba(3,6,12,0) 55%, rgba(3,6,12,0.85) 100%)" }} />
+        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 64 }}>
+          {credits.lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                fontFamily: ZH_SANS,
+                fontWeight: i === 0 ? 700 : 400,
+                fontSize: i === 0 ? 24 : 22,
+                letterSpacing: i === 0 ? "0.3em" : "0.03em",
+                color: i === 0 ? "#ffffff" : "rgba(255,255,255,0.82)",
+                textShadow: "0 2px 10px rgba(0,0,0,0.8)",
+                marginBottom: i === 0 ? 4 : 0,
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      </AbsoluteFill>
+    );
+  }
   return (
-    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 16, opacity: clamp((t - 2) / 8) }}>
-      {lines.map((line, i) => (
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 16, opacity }}>
+      {credits.lines.map((line, i) => (
         <div
           key={i}
           style={{
@@ -210,11 +304,14 @@ export const TextLayer: React.FC<{ props: PenangProps; clock: Clock }> = ({ prop
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       {props.captions.map((c, i) => (
-        <CaptionBlock key={i} c={c} frame={frame} clock={clock} look={props.look} />
+        <CaptionBlock key={`s${i}`} c={c} frame={frame} clock={clock} look={props.look} part="scrim" />
+      ))}
+      {props.captions.map((c, i) => (
+        <CaptionBlock key={`t${i}`} c={c} frame={frame} clock={clock} look={props.look} part="text" />
       ))}
       {frame < clock.endFrame ? <Chapter frame={frame} clock={clock} chapters={props.chapters} look={props.look} /> : null}
       {frame < clock.endFrame ? <Year frame={frame} clock={clock} years={props.years} look={props.look} /> : null}
-      <Credits frame={frame} clock={clock} lines={props.credits} />
+      <Credits frame={frame} clock={clock} credits={props.credits} />
     </AbsoluteFill>
   );
 };

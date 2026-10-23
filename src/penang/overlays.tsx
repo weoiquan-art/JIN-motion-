@@ -86,11 +86,12 @@ export const MapOverlay: React.FC<{
   kind: MapKey;
   frame: number;
   atBeat: number;
+  beats: number; // length of the shot, so the drawing finishes inside it
   clock: Clock;
   k: number; // on-screen pixels per image pixel
   warm: string;
   accent: string;
-}> = ({ kind, frame, atBeat, clock, k, warm, accent }) => {
+}> = ({ kind, frame, atBeat, beats, clock, k, warm, accent }) => {
   const beat = clock.beatAt(frame) - atBeat; // beats since the shot started
   const glowW = 18 / k;
   const coreW = 5 / k;
@@ -125,8 +126,9 @@ export const MapOverlay: React.FC<{
     const { route } = MAPS.bridge;
     const cum = segLengths(route);
     const total = cum[cum.length - 1];
-    // the light jumps forward on every beat and reaches Perai on beat 7
-    const steps = 7;
+    // the light jumps forward on every beat and reaches Perai one beat
+    // before the shot ends
+    const steps = Math.max(2, Math.round(beats) - 1);
     let p = 0;
     for (let b = 0; b < steps; b++) p += whip((frame - clock.f(atBeat + b + 0.0)) , 0.4, 7) / steps;
     const drawn = total * clamp(p);
@@ -145,7 +147,7 @@ export const MapOverlay: React.FC<{
             style={{ filter: `drop-shadow(0 0 ${14 / k}px ${warm})` }} />
         ) : null}
         <Chip x={start[0]} y={start[1] - 60} zh="Gelugor" en="PENANG ISLAND" k={k} opacity={clamp(beat * 2)} color={accent} />
-        <Chip x={end[0]} y={end[1] + 70} zh="Perai" en="MAINLAND" k={k} anchor="right" opacity={clamp((beat - 6) * 2)} color={accent} />
+        <Chip x={end[0]} y={end[1] + 70} zh="Perai" en="MAINLAND" k={k} anchor="right" opacity={clamp((beat - (steps - 1)) * 2)} color={accent} />
       </g>
     );
   }

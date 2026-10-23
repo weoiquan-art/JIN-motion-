@@ -194,8 +194,8 @@ export const ClosureScene: React.FC<SceneProps> = ({ frame, atBeat, clock, warm 
   for (let i = 1; i < GAPS.length; i++) gap = lerp(gap, GAPS[i], whip(frame - at(i - 1 + (i === GAPS.length - 1 ? 1 : 0)), 0.2, 6));
   const closed = whip(frame - at(4), 0, 4);
   const burst = hitEnv(frame - at(4), 16);
-  const s = lerp(1.0, 1.07, inv(at(0), at(8), frame)) + 0.015 * hitEnv(frame - at(4), 6);
-  const shakeX = 6 * hitEnv(frame - at(4), 5) * noise1(frame * 1.7, 2);
+  // a slow push only: the picture does not jump on the beats (JIN's note)
+  const s = lerp(1.0, 1.07, inv(at(0), at(8), frame));
   const left = MID - gap / 2;
   const right = MID + gap / 2;
   const line = "#f6dcb4";
@@ -223,7 +223,7 @@ export const ClosureScene: React.FC<SceneProps> = ({ frame, atBeat, clock, warm 
   return (
     <AbsoluteFill style={{ background: "linear-gradient(#060d1c 0%, #111f3d 50%, #3b2b48 76%, #a2563f 81.4%, #070d19 81.5%, #04070f 100%)" }}>
       <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
-        <g transform={`translate(${960 + shakeX} 660) scale(${s}) translate(-960 -660)`}>
+        <g transform={`translate(960 660) scale(${s}) translate(-960 -660)`}>
           {/* glow on the horizon */}
           <ellipse cx={MID} cy={SEA_Y} rx={900} ry={60} fill={warm} opacity={0.18 + 0.4 * burst} style={{ filter: "blur(30px)" }} />
           {/* sea shimmer */}

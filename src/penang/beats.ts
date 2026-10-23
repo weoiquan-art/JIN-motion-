@@ -12,6 +12,7 @@ export type MusicProps = {
   readonly bars: number;
   readonly preRoll: number;
   readonly tail: number;
+  readonly loop: boolean;
   readonly fadeIn: number;
   readonly fadeOut: number;
   readonly volume: number;
@@ -38,6 +39,10 @@ export type Clock = {
   readonly beatsInFilm: number;
   /** Frame of the downbeat that ends the music part (start of the tail). */
   readonly endFrame: number;
+  /** Loop mode: the film is exactly `bars` bars long, measured from frame 0,
+   * so when it starts again the first downbeat lands where the next one
+   * would have been. */
+  readonly loop: boolean;
   readonly durationInFrames: number;
   readonly bpm: number;
 };
@@ -97,7 +102,9 @@ export const makeClock = (music: MusicProps, fps: number): Clock => {
     hits,
     beatsInFilm,
     endFrame,
-    durationInFrames: Math.ceil(endFrame + music.tail * fps),
+    loop: music.loop,
+    // loop: frame 0 of the next pass + f(0) must land on beat `beatsInFilm`
+    durationInFrames: music.loop ? Math.max(1, Math.round(endFrame - f(0))) : Math.ceil(endFrame + music.tail * fps),
     bpm: bgm.tempo.bpm,
   };
 };

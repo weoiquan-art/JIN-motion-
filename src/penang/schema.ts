@@ -37,6 +37,9 @@ export const shotSchema = z.object({
     .describe("print 样式的相片位置和大小"),
   kick: z.number().min(0).max(3).describe("每拍推镜脉冲的强度（0 = 不跳）"),
   dim: z.number().min(0).max(1).describe("压暗（0 = 不压暗）"),
+  ease: z
+    .enum(["drift", "inOut", "linear"])
+    .describe("运镜曲线：drift = 匀速为主；inOut = 两头停稳（首尾接 loop 的镜头用）；linear = 匀速"),
 });
 
 export const captionSchema = z.object({
@@ -51,6 +54,10 @@ export const captionSchema = z.object({
   size: z.number().min(40).max(260).describe("标题字号 px"),
   slam: z.boolean().describe("砸进（放大回弹）而不是滑入"),
   big: z.string().describe("标题后面的大号数字（可空）"),
+  dy: z.number().describe("上下偏移 px（几条字幕叠成一段时用）"),
+  scrim: z.boolean().describe("文字后面垫一层暗色"),
+  typeBeats: z.number().min(0).describe("逐字打出用几拍（0 = 整行滑入）；字落在八分音符上"),
+  exit: z.number().min(0).max(30).describe("结束前淡出用几帧（0 = 一直亮到最后，被下一个镜头盖掉）"),
 });
 
 export const penangSchema = z.object({
@@ -59,9 +66,12 @@ export const penangSchema = z.object({
     startBar: z.number().int().min(0).describe("从歌的第几小节开始（见 public/data/penang-bgm.json 的 bars）"),
     bars: z.number().int().min(1).describe("用几小节"),
     preRoll: z.number().min(0).max(1).describe("第一拍前留几秒"),
-    tail: z.number().min(0).max(10).describe("最后一拍后留几秒（署名）"),
+    tail: z.number().min(0).max(10).describe("最后一拍后留几秒（loop 时不用）"),
+    loop: z
+      .boolean()
+      .describe("首尾接成 loop：片长正好是整数小节，结尾停在下一个重拍前，循环播放时节拍不断"),
     fadeIn: z.number().min(0).max(2).describe("音乐淡入秒数"),
-    fadeOut: z.number().min(0).max(10).describe("音乐淡出秒数（从最后一拍开始）"),
+    fadeOut: z.number().min(0).max(10).describe("音乐淡出秒数（loop：片尾最后几秒；否则从最后一拍开始）"),
     volume: z.number().min(0).max(1).describe("音量"),
   }),
   layers: z
@@ -80,6 +90,8 @@ export const penangSchema = z.object({
     grain: z.number().min(0).max(1).describe("颗粒"),
     vignette: z.number().min(0).max(1).describe("暗角"),
     autoHits: z.boolean().describe("自动在 JSON 检测到的强重音上打光晕"),
+    hitX: z.number().describe("自动光晕中心 x（%）"),
+    hitY: z.number().describe("自动光晕中心 y（%）"),
   }),
   shots: z.array(shotSchema),
   captions: z.array(captionSchema),
@@ -95,7 +107,14 @@ export const penangSchema = z.object({
       }),
     )
     .describe("手动加的光晕；离自动重音不到 0.25 拍时替换掉自动的那一个"),
-  credits: z.array(z.string()).describe("片尾署名，一行一条"),
+  credits: z
+    .object({
+      lines: z.array(z.string()).describe("一行一条，第一行是标题"),
+      at: z.number().describe("从第几拍出现"),
+      beats: z.number().min(0.5).describe("停留几拍"),
+      place: z.enum(["center", "bottom"]).describe("center = 黑场居中；bottom = 小字叠在画面下方"),
+    })
+    .describe("署名"),
 });
 
 export type PenangProps = z.infer<typeof penangSchema>;

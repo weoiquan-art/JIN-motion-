@@ -5,7 +5,7 @@
 
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
-import { clamp, hash, hitEnv, lerp } from "./anim";
+import { clamp, hash, hitEnv, inv, lerp } from "./anim";
 import type { Clock } from "./beats";
 import type { Slot } from "./PhotoLayer";
 import type { PenangProps } from "./schema";
@@ -79,7 +79,10 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
   look,
 }) => {
   const frame = useCurrentFrame();
-  const energy = clock.energy(frame);
+  // A loop ends on its opening frame: let the beat light die out in the last
+  // frames so the seam does not flicker.
+  const loopFade = clock.loop ? 1 - inv(clock.durationInFrames - 20, clock.durationInFrames - 4, frame) : 1;
+  const energy = clock.energy(frame) * loopFade;
 
   // 1. pulse on every beat
   const b = Math.floor(clock.beatAt(frame));
@@ -95,7 +98,7 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
   const auto = look.autoHits
     ? clock.hits
         .filter((h) => !flares.some((fl) => Math.abs(fl.at - h.beat) < 0.25))
-        .map((h) => ({ frame: h.frame, at: h.beat, strength: 0.5 + h.strength, x: 50, y: 44 }))
+        .map((h) => ({ frame: h.frame, at: h.beat, strength: 0.5 + h.strength, x: look.hitX, y: look.hitY }))
     : [];
   let bloom = { a: 0, x: 50, y: 44 };
   for (const ev of [...auto, ...manual]) {
@@ -109,7 +112,8 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
   let leakPhase = 0;
   for (const s of slots) {
     const t = frame - s.start;
-    if (s.shot.enter === "flash") flash = Math.max(flash, hitEnv(t, 4.5));
+    // full white on the cut frame itself, then decay (the cut frame carries the jump)
+    if (s.shot.enter === "flash" && t >= 0) flash = Math.max(flash, Math.exp(-t / 4.5));
     if (s.shot.enter === "zoom") flash = Math.max(flash, 0.3 * hitEnv(t, 4));
     if (s.shot.enter === "leak" && t > -16 && t < 20) {
       const a = Math.exp(-(t * t) / (2 * 7.5 * 7.5));

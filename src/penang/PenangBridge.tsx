@@ -24,7 +24,7 @@ const allText = (p: PenangProps) =>
     ...p.captions.flatMap((c) => [c.kicker, c.title, c.sub, c.en, c.big]),
     ...p.chapters.flatMap((c) => [c.label, c.en]),
     ...p.years.map((y) => y.text),
-    ...p.credits,
+    ...p.credits.lines,
   ].join("");
 
 export const PenangBridge: React.FC<PenangProps> = (props) => {
@@ -50,7 +50,10 @@ export const PenangBridge: React.FC<PenangProps> = (props) => {
         trimBefore={clock.trimBefore}
         volume={(f) => {
           const fin = music.fadeIn > 0 ? clamp(f / (music.fadeIn * fps)) : 1;
-          const x = music.fadeOut > 0 ? clamp((f - clock.endFrame) / (music.fadeOut * fps)) : f < clock.endFrame ? 0 : 1;
+          // loop: fade over the last `fadeOut` seconds of the film; otherwise
+          // from the last downbeat into the tail
+          const from = clock.loop ? clock.durationInFrames - music.fadeOut * fps : clock.endFrame;
+          const x = music.fadeOut > 0 ? clamp((f - from) / (music.fadeOut * fps)) : f < from ? 0 : 1;
           return music.volume * fin * Math.pow(1 - x, 1.6);
         }}
       />
