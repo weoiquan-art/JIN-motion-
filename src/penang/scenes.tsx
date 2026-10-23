@@ -1,11 +1,12 @@
-// Code-drawn shots that stand in for photos: the title sunset (the bridge in
-// silhouette, the sun in its main span), the night drive across the deck and
-// the 1985 closure of the deck. Each takes the shot's camera move (`mv`) and
-// times everything inside from the beat grid (`at`, `b`).
+// Code-drawn shots: the title sunset (the bridge in silhouette, the sun in its
+// main span) and the same sunset with today's catamaran ferry passing; the
+// drive across the deck at dusk (1985) and at night (today); the towers
+// going up (1982) and the 1985 closure of the deck. Each takes the shot's
+// camera move (`mv`) and times everything inside from the beat grid (`at`, `b`).
 
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { clamp, hash, hitEnv, lerp, noise1, whip } from "./anim";
+import { clamp, hash, hitEnv, inv, lerp, noise1, whip } from "./anim";
 import { BGM_INFO } from "./beats";
 import type { Move } from "./schema";
 
@@ -74,8 +75,35 @@ const Bird: React.FC<{ x: number; y: number; s: number; flap: number }> = ({ x, 
   );
 };
 
-export const SunsetScene: React.FC<SceneProps> = ({ frame, e, mv, warm }) => {
-  const sunY = SUN[1] + 16 * e;
+// Today's ferries are catamarans (passenger only): low twin hull, raked
+// cabin, a band of windows. Drawn bow to the left, waterline at y = 0.
+const Catamaran: React.FC<{ x: number; y: number; s: number; frame: number }> = ({ x, y, s, frame }) => {
+  const bob = noise1(frame / 18, 6) * 2;
+  const wake: React.ReactNode[] = [];
+  for (let i = 0; i < 26; i++) {
+    const dx = 250 + i * 26 + noise1(i + frame / 6, 3) * 6;
+    const spread = 2 + i * 0.9;
+    wake.push(<rect key={i} x={dx} y={-2 + (i % 2 ? spread : -spread * 0.4)} width={30 + i * 2} height={2.2} rx={1} fill="#ffe2b0"
+      opacity={clamp(0.7 - i * 0.026) * (0.6 + 0.4 * hash(i * 3.7 + Math.floor(frame / 4)))} />);
+  }
+  return (
+    <g transform={`translate(${x} ${y + bob}) scale(${s})`}>
+      {wake}
+      <path d="M-268 -26 Q-262 -8 -238 0 L254 0 L262 -30 Z" fill={INK} />
+      <path d="M-196 -28 L-150 -72 L214 -72 L232 -28 Z" fill={INK} />
+      <path d="M-104 -72 L-80 -98 L62 -98 L74 -72 Z" fill={INK} />
+      <line x1={22} y1={-98} x2={22} y2={-132} stroke={INK} strokeWidth={3} />
+      {Array.from({ length: 16 }).map((_, i) => (
+        <rect key={i} x={-138 + i * 21} y={-62} width={15} height={12} rx={2} fill="#ffcf8a" opacity={0.75} />
+      ))}
+      <rect x={-240} y={0} width={500} height={6} fill={INK} opacity={0.5} />
+    </g>
+  );
+};
+
+export const SunsetScene: React.FC<SceneProps & { catamaran: boolean }> = ({ frame, b, beats, e, mv, warm, catamaran }) => {
+  // with the catamaran, the sun is lower and the ferry crosses the sun's path
+  const sunY = SUN[1] + 16 * e + (catamaran ? 90 : 0);
   // the sun breathes a little with the light pulses of the FX layer; here only a slow shimmer
   const shimmer = (i: number) => noise1(i * 1.7 + frame / 9, 4);
   const cables: React.ReactNode[] = [];
@@ -200,6 +228,11 @@ export const SunsetScene: React.FC<SceneProps> = ({ frame, e, mv, warm }) => {
             <circle key={`a${x}`} cx={x} cy={TIP - 24} r={3} fill="#ff4a3a" opacity={0.9} />
           ))}
         </g>
+        {catamaran ? (
+          <g transform={layer(mv, 1.15)}>
+            <Catamaran x={lerp(1780, 560, clamp(b / beats))} y={850} s={0.95} frame={frame} />
+          </g>
+        ) : null}
         {/* birds */}
         <g transform={layer(mv, 0.7)}>
           {[0, 1, 2].map((i) => (
@@ -212,12 +245,14 @@ export const SunsetScene: React.FC<SceneProps> = ({ frame, e, mv, warm }) => {
   );
 };
 
-// ----------------------------------------------------------------- night
-// Driving across the deck at night, in one-point perspective. One lamp post
-// on each side passes the camera every beat (the sides are staggered by half
-// a beat), so the picture keeps time without jumping. Cars keep to the left:
-// red tail lights ahead of us, white headlights coming the other way. The
+// ----------------------------------------------------------- night, dusk
+// Driving across the deck, in one-point perspective. One lamp post on each
+// side passes the camera every beat (the sides are staggered by half a beat),
+// so the picture keeps time without jumping. Cars keep to the left: red tail
+// lights ahead of us, white headlights coming the other way. The
 // cable-stayed span comes closer, its aviation lights blinking on the beats.
+// Night is today's deck (three lanes each way, widened in 2008–09); dusk is
+// the deck as it opened in 1985 (two lanes each way), into the low sun.
 const VP: [number, number] = [960, 470];
 const FL = 1000;
 const CAM_H = 1.8;
@@ -229,7 +264,12 @@ const proj = (p: W, camX: number): [number, number] | null =>
   p.z <= 0.5 ? null : [VP[0] + (FL * (p.x - camX)) / p.z, VP[1] + (FL * (CAM_H - p.y)) / p.z];
 const pts = (...ps: ([number, number] | null)[]) => (ps.some((q) => !q) ? "" : (ps as [number, number][]).map((q) => q.join(",")).join(" "));
 
-export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => {
+type Deck = { edge: number; dashes: number[]; parapet: number; lamp: number; pylon: number; ahead: number[]; oncoming: number[] };
+const SIX_LANES: Deck = { edge: 11, dashes: [-7.3, -3.7, 3.7, 7.3], parapet: 11.8, lamp: 12.2, pylon: 12.8, ahead: [-9.2, -5.5, -1.8], oncoming: [1.8, 5.5, 9.2] };
+const FOUR_LANES: Deck = { edge: 7.4, dashes: [-3.9, 3.9], parapet: 8.1, lamp: 8.5, pylon: 9.0, ahead: [-5.65, -2.15], oncoming: [2.15, 5.65] };
+
+export const NightScene: React.FC<SceneProps & { dusk: boolean }> = ({ frame, b, at, mv, warm, dusk }) => {
+  const D = dusk ? FOUR_LANES : SIX_LANES;
   const travel = b * SPACING; // metres driven since the shot began
   const camX = CAM_X + noise1(frame / 40, 9) * 0.25;
   const P = (x: number, y: number, z: number) => proj({ x, y, z }, camX);
@@ -247,12 +287,9 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
         fill="#e8eef6" opacity={0.75 * clamp(1 - z0 / 500)} />);
     }
   };
-  solid(-11, "eL", "#f2f5fa");
-  dashed(-7.3, "d1");
-  dashed(-3.7, "d2");
-  dashed(3.7, "d3");
-  dashed(7.3, "d4");
-  solid(11, "eR", "#f2f5fa");
+  solid(-D.edge, "eL", "#f2f5fa");
+  D.dashes.forEach((x, i) => dashed(x, `d${i}`));
+  solid(D.edge, "eR", "#f2f5fa");
 
   // lamp posts: left side on the beats, right side half a beat later
   const poles: React.ReactNode[] = [];
@@ -263,7 +300,7 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
     for (let k = 0; k < 18; k++) {
       const z = k * SPACING + off - (travel % SPACING) + 6;
       if (z < 1.5) continue;
-      const x = side * 12.2;
+      const x = side * D.lamp;
       const foot = P(x, 0, z);
       const head = P(x, 11, z);
       const lampW: W = { x: x - side * 2.6, y: 10.7, z };
@@ -272,12 +309,13 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
       const w = Math.max(0.8, (FL * 0.28) / z);
       const fade = clamp(1.15 - z / 620);
       poles.push(
-        <g key={`${side}${k}`} opacity={fade} stroke="#5d6a80" strokeLinecap="round">
+        <g key={`${side}${k}`} opacity={fade} stroke={dusk ? "#2a1c22" : "#5d6a80"} strokeLinecap="round">
           <line x1={foot[0]} y1={foot[1]} x2={head[0]} y2={head[1]} strokeWidth={w} />
           <line x1={head[0]} y1={head[1]} x2={lamp[0]} y2={lamp[1]} strokeWidth={w * 0.7} />
         </g>,
       );
       const r = Math.min(340, (FL * 3.2) / z);
+      if (dusk) continue; // the lamps are not on yet
       glows.push(<circle key={`g${side}${k}`} cx={lamp[0]} cy={lamp[1]} r={r} fill="url(#pbLampGlow)" opacity={fade} />);
       glows.push(<ellipse key={`s${side}${k}`} cx={lamp[0]} cy={lamp[1]} rx={r * 1.6} ry={Math.max(1, r * 0.05)} fill="#ffe9c4" opacity={0.35 * fade} />);
       glows.push(<circle key={`c${side}${k}`} cx={lamp[0]} cy={lamp[1]} r={Math.max(1.5, r * 0.07)} fill="#fff8ea" opacity={fade} />);
@@ -289,10 +327,17 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
     }
   }
 
-  // traffic
+  // traffic (bodies are drawn normally, the lights in screen mode)
   const cars: React.ReactNode[] = [];
-  const pair = (x: number, z: number, zTrail: number, core: string, glow: string, key: string, size: number) => {
+  const bodies: React.ReactNode[] = [];
+  const pair = (x: number, z: number, zTrail: number, core: string, glow: string, key: string, size: number, body = false) => {
     if (z < 1.5 || z > 900) return;
+    if (body) {
+      // at dusk the cars ahead are still visible: a dark body above the tail lights
+      const bl = P(x - 0.95, 0.35, z);
+      const tr = P(x + 0.95, 1.5, z);
+      if (bl && tr) bodies.push(<rect key={`${key}b`} x={bl[0]} y={tr[1]} width={tr[0] - bl[0]} height={bl[1] - tr[1]} rx={(tr[0] - bl[0]) * 0.12} fill="#1c1218" />);
+    }
     for (const dx of [-0.8, 0.8]) {
       const a = P(x + dx, 0.75, z);
       const t = P(x + dx, 0.75, zTrail);
@@ -309,17 +354,17 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
   };
   for (let i = 0; i < 10; i++) {
     // ahead of us, same way, a little slower or faster: red tail lights
-    const lane = [-9.2, -5.5, -1.8][i % 3];
+    const lane = D.ahead[i % D.ahead.length];
     const rel = (hash(i * 4.7) - 0.6) * 9; // m/s relative to us
     const z = 24 + ((((hash(i * 2.9) * 560 + rel * sec) % 560) + 560) % 560);
-    pair(lane, z, z - rel / 30 - 0.6, "#ff4a3c", "#ff2a1a", `t${i}`, 0.15);
+    pair(lane, z, z - rel / 30 - 0.6, "#ff4a3c", "#ff2a1a", `t${i}`, 0.15, dusk);
   }
   for (let i = 0; i < 14; i++) {
     // coming the other way: white headlights, fast
-    const lane = [1.8, 5.5, 9.2][i % 3];
+    const lane = D.oncoming[i % D.oncoming.length];
     const v = 94 + hash(i * 3.3) * 10; // closing speed, m/s
     const z = ((((hash(i * 5.1) * 800 - v * sec) % 800) + 800) % 800) + 2;
-    pair(lane, z, z + (v / 30) * 1.8, "#f6f9ff", "#cfe0ff", `h${i}`, 0.19);
+    pair(lane, z, z + (v / 30) * 1.8, dusk ? "#fff1d6" : "#f6f9ff", dusk ? "#ffd9a0" : "#cfe0ff", `h${i}`, dusk ? 0.15 : 0.19);
   }
 
   // the cable-stayed span ahead, coming closer
@@ -329,7 +374,7 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
     const z = z0 - travel;
     if (z < 4) continue;
     for (const side of [-1, 1]) {
-      const x = side * 12.8;
+      const x = side * D.pylon;
       const foot = P(x, 0, z);
       const top = P(x, 98, z);
       const tip = P(x, 114, z);
@@ -346,12 +391,14 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
       }
       span.push(
         <g key={`${z0}${side}`}>
-          <g stroke="#ffe3bd" strokeWidth={Math.max(0.7, w * 0.11)} opacity={0.6}>
+          <g stroke={dusk ? "#2a1820" : "#ffe3bd"} strokeWidth={Math.max(0.7, w * 0.11)} opacity={dusk ? 0.85 : 0.6}>
             {cables}
           </g>
-          <line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke="#ffd9a6" strokeWidth={w * 2.4} opacity={0.12} />
-          <line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke="#e9d2b0" strokeWidth={w * 0.8} opacity={0.85} />
-          <path d={`M${top[0] - w * 0.4} ${top[1]} L${tip[0]} ${tip[1]} L${top[0] + w * 0.4} ${top[1]} Z`} fill="#e9d2b0" opacity={0.85} />
+          {dusk ? null : <line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke="#ffd9a6" strokeWidth={w * 2.4} opacity={0.12} />}
+          <line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke={dusk ? "#22141b" : "#e9d2b0"} strokeWidth={w * (dusk ? 1 : 0.8)}
+            opacity={dusk ? 1 : 0.85} />
+          <path d={`M${top[0] - w * 0.4} ${top[1]} L${tip[0]} ${tip[1]} L${top[0] + w * 0.4} ${top[1]} Z`} fill={dusk ? "#22141b" : "#e9d2b0"}
+            opacity={dusk ? 1 : 0.85} />
           <circle cx={tip[0]} cy={tip[1]} r={Math.max(2.5, w * 0.9)} fill="#ff3b30" opacity={0.5 + 0.5 * blink} />
           <circle cx={tip[0]} cy={tip[1]} r={Math.max(10, w * 4)} fill="#ff3b30" opacity={0.3 * blink} />
         </g>,
@@ -361,7 +408,15 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
 
   // the skyline far ahead, on the horizon, and its reflection in the sea
   const skyline: React.ReactNode[] = [];
-  for (let i = 0; i < 120; i++) {
+  if (dusk) {
+    for (let i = 0; i < 60; i++) {
+      const x = 300 + hash(i * 1.3) * 1320;
+      const h = 4 + hash(i * 2.1) * 16;
+      const w = 8 + hash(i * 4.4) * 22;
+      skyline.push(<rect key={`b${i}`} x={x} y={VP[1] - h} width={w} height={h + 1} fill="#4a2a3a" opacity={0.85} />);
+    }
+  }
+  for (let i = 0; i < (dusk ? 40 : 120); i++) {
     const x = 380 + hash(i * 1.3) * 1160;
     const y = VP[1] - 2 - hash(i * 2.1) * 10;
     const c = hash(i * 5.9) > 0.3 ? "#ffd49a" : "#dff0ff";
@@ -377,16 +432,33 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
       <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
         <defs>
           <linearGradient id="pbNightSky" x1="0" y1="0" x2="0" y2={VP[1]} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#02050c" />
-            <stop offset="0.6" stopColor="#0a1a36" />
-            <stop offset="0.9" stopColor="#243266" />
-            <stop offset="1" stopColor="#5a4a7a" />
+            {dusk ? (
+              <>
+                <stop offset="0" stopColor="#2a2850" />
+                <stop offset="0.45" stopColor="#7a4262" />
+                <stop offset="0.8" stopColor="#e07a56" />
+                <stop offset="1" stopColor="#ffc47c" />
+              </>
+            ) : (
+              <>
+                <stop offset="0" stopColor="#02050c" />
+                <stop offset="0.6" stopColor="#0a1a36" />
+                <stop offset="0.9" stopColor="#243266" />
+                <stop offset="1" stopColor="#5a4a7a" />
+              </>
+            )}
           </linearGradient>
           <linearGradient id="pbNightSea" x1="0" y1={VP[1]} x2="0" y2={1080} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#1b2444" />
-            <stop offset="0.3" stopColor="#0a1226" />
-            <stop offset="1" stopColor="#03060d" />
+            <stop offset="0" stopColor={dusk ? "#d0805c" : "#1b2444"} />
+            <stop offset="0.3" stopColor={dusk ? "#5a2e3a" : "#0a1226"} />
+            <stop offset="1" stopColor={dusk ? "#140c12" : "#03060d"} />
           </linearGradient>
+          <radialGradient id="pbDuskSun" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#fff6dc" stopOpacity={1} />
+            <stop offset="0.12" stopColor="#ffe0a0" stopOpacity={0.9} />
+            <stop offset="0.35" stopColor="#ffb070" stopOpacity={0.35} />
+            <stop offset="1" stopColor="#ff9060" stopOpacity={0} />
+          </radialGradient>
           <radialGradient id="pbLampGlow" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="#fff1d2" stopOpacity={0.9} />
             <stop offset="0.12" stopColor="#ffd08a" stopOpacity={0.45} />
@@ -402,26 +474,31 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
             <stop offset="1" stopColor="#ffc47a" stopOpacity={0} />
           </radialGradient>
           <linearGradient id="pbRoad" x1="0" y1={VP[1]} x2="0" y2={1080} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#2a2f40" />
-            <stop offset="0.25" stopColor="#191d29" />
-            <stop offset="1" stopColor="#0c0f17" />
+            <stop offset="0" stopColor={dusk ? "#a2605a" : "#2a2f40"} />
+            <stop offset="0.25" stopColor={dusk ? "#3e2a30" : "#191d29"} />
+            <stop offset="1" stopColor={dusk ? "#140e12" : "#0c0f17"} />
           </linearGradient>
         </defs>
         <g transform={`translate(960 540) rotate(${roll}) scale(${mv.scale}) translate(-960 -540)`}>
           <rect x={-300} y={-300} width={2520} height={VP[1] + 300} fill="url(#pbNightSky)" />
           <rect x={-300} y={VP[1]} width={2520} height={900} fill="url(#pbNightSea)" />
-          <ellipse cx={VP[0]} cy={VP[1]} rx={1100} ry={120} fill="url(#pbHorizonGlow)" />
+          {dusk ? (
+            <circle cx={VP[0] + 40} cy={VP[1] - 34} r={420} fill="url(#pbDuskSun)" />
+          ) : (
+            <ellipse cx={VP[0]} cy={VP[1]} rx={1100} ry={120} fill="url(#pbHorizonGlow)" />
+          )}
           {skyline}
           {/* road surface between the parapets */}
-          <polygon points={pts(P(-11.6, 0, 1.5), P(11.6, 0, 1.5), P(11.6, 0, 1500), P(-11.6, 0, 1500))} fill="url(#pbRoad)" />
+          <polygon points={pts(P(-D.parapet + 0.2, 0, 1.5), P(D.parapet - 0.2, 0, 1.5), P(D.parapet - 0.2, 0, 1500), P(-D.parapet + 0.2, 0, 1500))}
+            fill="url(#pbRoad)" />
           <g style={{ mixBlendMode: "screen" }}>{pools}</g>
           {marks}
           {/* median barrier and parapets */}
           {[
-            [-0.4, 0.9, "#1c2230"],
-            [0.4, 0.9, "#1c2230"],
-            [-11.8, 1.1, "#161b27"],
-            [11.8, 1.1, "#161b27"],
+            [-0.4, 0.9, dusk ? "#24161c" : "#1c2230"],
+            [0.4, 0.9, dusk ? "#24161c" : "#1c2230"],
+            [-D.parapet, 1.1, dusk ? "#1c1216" : "#161b27"],
+            [D.parapet, 1.1, dusk ? "#1c1216" : "#161b27"],
           ].map(([x, h, c]) => (
             <g key={x as number}>
               <polygon points={pts(P(x as number, 0, 1.5), P(x as number, h as number, 1.5), P(x as number, h as number, 1500), P(x as number, 0, 1500))}
@@ -432,9 +509,104 @@ export const NightScene: React.FC<SceneProps> = ({ frame, b, at, mv, warm }) => 
           ))}
           {span}
           {poles}
+          {bodies}
           <g style={{ mixBlendMode: "screen" }}>
             {cars}
             {glows}
+          </g>
+        </g>
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+// ----------------------------------------------- 1982: the towers go up
+// Same bridge and drawing as the closure below, at dawn and at an earlier
+// stage: the two towers rise out of the sea on the first two beats, tower
+// cranes on top; from beat 2 the deck grows out of each tower, one segment
+// per beat, cables following, until each arm is as long as the closure scene
+// starts with. On beat 4 a dimension line marks the main span between the towers.
+const BUILD_REACH = 180; // px each arm reaches by the end (closure starts from here)
+
+const TowerCrane: React.FC<{ x: number; top: number; color: string; jib: number }> = ({ x, top, color, jib }) => (
+  <g stroke={color} strokeWidth={1.6} fill="none">
+    <line x1={x + 14} y1={top} x2={x + 14} y2={top - 70} />
+    <line x1={x + 20} y1={top} x2={x + 20} y2={top - 70} />
+    <line x1={x + 14 + jib * -90} y1={top - 70} x2={x + 20 + jib * 60} y2={top - 70} />
+    <line x1={x + 17} y1={top - 82} x2={x + 14 + jib * -90} y2={top - 70} />
+    <line x1={x + 17} y1={top - 82} x2={x + 20 + jib * 60} y2={top - 70} />
+    <line x1={x + 14 + jib * -70} y1={top - 70} x2={x + 14 + jib * -70} y2={top - 40} />
+  </g>
+);
+
+export const BuildScene: React.FC<SceneProps> = ({ frame, at, mv, warm }) => {
+  const line = "#f0d8bc";
+  const rise = C_PYLONS.map((_, i) => whip(frame - at(i), 0.25, 12));
+  // arm length grows a segment on each beat from beat 2 to 7
+  let reach = 0;
+  for (let k = 2; k < 8; k++) reach += (whip(frame - at(k), 0.3, 8) * BUILD_REACH) / 6;
+  const dim = whip(frame - at(4), 0, 12);
+  const cables: React.ReactNode[] = [];
+  C_PYLONS.forEach((px, pi) => {
+    for (let i = 0; i < 9; i++) {
+      const ay = 380 + i * 13;
+      const r = 42 + i * 38;
+      for (const dir of [-1, 1]) {
+        if (r > reach) continue;
+        const top = C_SEA - (C_SEA - ay) * rise[pi];
+        cables.push(<line key={`${px}${i}${dir}`} x1={px + dir * 4} y1={top} x2={px + dir * r} y2={C_DECK} stroke={line} strokeWidth={1.4} opacity={0.8} />);
+      }
+    }
+  });
+  const sun = hitEnv(frame - at(0), 30);
+  return (
+    <AbsoluteFill style={{ background: "linear-gradient(#1d2744 0%, #45486e 38%, #b98a92 70%, #f2c49a 81.4%, #3a3a52 81.5%, #161a2a 100%)" }}>
+      <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
+        <g transform={layer(mv, 1, 960, 660)}>
+          {/* sunrise behind, on the horizon */}
+          <ellipse cx={1500} cy={C_SEA} rx={700} ry={70} fill={warm} opacity={0.25 + 0.15 * sun} style={{ filter: "blur(30px)" }} />
+          <circle cx={1500} cy={C_SEA - 8} r={34} fill="#ffe6bf" opacity={0.9} />
+          {Array.from({ length: 22 }).map((_, i) => {
+            const y = C_SEA + 10 + i * i * 0.65;
+            const w = 120 + i * 40;
+            const x = 1400 + noise1(i * 3.1 + frame / 40, 7) * 140;
+            return <rect key={i} x={x - w / 2} y={y} width={w} height={2 + i * 0.12} fill="#ffd8a8" opacity={0.18 - i * 0.007} />;
+          })}
+          {/* approach spans and piers, already standing */}
+          {[100, 220, 340, 460, 1460, 1580, 1700, 1820].map((x) => (
+            <rect key={x} x={x - 7} y={C_DECK + 10} width={14} height={C_SEA - C_DECK - 10} fill="#202436" stroke={line} strokeWidth={1.5} />
+          ))}
+          <line x1={0} y1={C_DECK} x2={480} y2={C_DECK} stroke={line} strokeWidth={5} />
+          <line x1={1440} y1={C_DECK} x2={1920} y2={C_DECK} stroke={line} strokeWidth={5} />
+          {/* a crane barge by the first tower */}
+          <g stroke={line} strokeWidth={1.6} fill="#202436">
+            <rect x={380} y={C_SEA - 18} width={170} height={18} />
+            <line x1={420} y1={C_SEA - 18} x2={540} y2={C_SEA - 150} fill="none" />
+            <line x1={540} y1={C_SEA - 150} x2={540} y2={C_SEA - 90} fill="none" />
+          </g>
+          {/* the arms growing out of each tower */}
+          {C_PYLONS.map((px) => (
+            <line key={px} x1={px - reach} y1={C_DECK} x2={px + reach} y2={C_DECK} stroke={line} strokeWidth={5} />
+          ))}
+          {cables}
+          {C_PYLONS.map((px, i) => {
+            const k = rise[i];
+            if (k <= 0) return null;
+            const top = C_SEA - (C_SEA - 298) * k;
+            return (
+              <g key={px}>
+                <g transform={`translate(0 ${C_SEA * (1 - k)}) scale(1 ${k})`}>
+                  <Pylon x={px} color={line} />
+                </g>
+                <TowerCrane x={px} top={top} color={line} jib={i === 0 ? 1 : -1} />
+              </g>
+            );
+          })}
+          {/* the main span, marked on beat 4, just above the deck */}
+          <g opacity={dim} stroke={warm} strokeWidth={2.5}>
+            <line x1={C_MID - 360 * dim} y1={700} x2={C_MID + 360 * dim} y2={700} />
+            <line x1={C_PYLONS[0] + 22} y1={684} x2={C_PYLONS[0] + 22} y2={716} opacity={inv(0.95, 1, dim)} />
+            <line x1={C_PYLONS[1] - 22} y1={684} x2={C_PYLONS[1] - 22} y2={716} opacity={inv(0.95, 1, dim)} />
           </g>
         </g>
       </svg>

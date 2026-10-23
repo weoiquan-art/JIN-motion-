@@ -9,7 +9,9 @@ import { AbsoluteFill, Img, Sequence, staticFile, useCurrentFrame } from "remoti
 import { clamp, drift, easeIn, easeInOut, easeOut, hash, inv, lerp, noise1, whip } from "./anim";
 import type { Clock } from "./beats";
 import { MapWorld } from "./MapWorld";
-import { ClosureScene, NightScene, type SceneProps, SunsetScene } from "./scenes";
+import { CrowdScene } from "./crowd";
+import { FerryScene, JettyScene } from "./ferries";
+import { BuildScene, ClosureScene, NightScene, type SceneProps, SunsetScene } from "./scenes";
 import type { Move, PenangProps, Shot } from "./schema";
 
 type Enter = Shot["enter"];
@@ -44,6 +46,8 @@ export const schedule = (shots: readonly Shot[], clock: Clock): Slot[] => {
 const easeOf = (shot: Shot, p: number, tMid: number) => {
   if (shot.ease === "inOut") return easeInOut(p);
   if (shot.ease === "linear") return clamp(p);
+  // from rest, faster and faster (a dive into the next downbeat)
+  if (shot.ease === "accel") return Math.pow(clamp(p), 2.6);
   if (shot.ease === "swoop") {
     // drift a little for the first half, then fly to the end on the middle beat
     return lerp(0.08 * clamp(p * 2), 1, whip(tMid, 0.2, 14));
@@ -212,11 +216,32 @@ const ShotContent: React.FC<{ slot: Slot; frame: number; clock: Clock; look: Loo
     warm: look.warm,
     accent: look.accent,
   };
-  if (shot.kind === "map") return <MapWorld mode={shot.mapMode} {...scene} />;
-  if (shot.kind === "sunset") return <SunsetScene {...scene} />;
-  if (shot.kind === "night") return <NightScene {...scene} />;
-  if (shot.kind === "closure") return <ClosureScene {...scene} />;
-  return <FullPhoto shot={shot} mv={mv} frame={frame} />;
+  switch (shot.kind) {
+    case "map":
+      return <MapWorld mode={shot.mapMode} {...scene} />;
+    case "sunset":
+      return <SunsetScene {...scene} catamaran={false} />;
+    case "catamaran":
+      return <SunsetScene {...scene} catamaran />;
+    case "ferry":
+      return <FerryScene {...scene} />;
+    case "jetty":
+      return <JettyScene {...scene} />;
+    case "build":
+      return <BuildScene {...scene} />;
+    case "closure":
+      return <ClosureScene {...scene} />;
+    case "walk":
+      return <CrowdScene {...scene} variant="walk" />;
+    case "marathon":
+      return <CrowdScene {...scene} variant="marathon" />;
+    case "dusk":
+      return <NightScene {...scene} dusk />;
+    case "night":
+      return <NightScene {...scene} dusk={false} />;
+    default:
+      return <FullPhoto shot={shot} mv={mv} frame={frame} />;
+  }
 };
 
 const ShotFrame: React.FC<{ slot: Slot; from: number; clock: Clock; look: Look }> = ({ slot, from, clock, look }) => {

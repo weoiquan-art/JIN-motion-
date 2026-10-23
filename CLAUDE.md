@@ -17,7 +17,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 | `IntroV2` | `src/intro-v2/` | `out/intro-v2.mp4` | `scripts/gen-audio-v2.ts` | 30 秒 |
 | `IntroFree` | `src/intro-free/`、`src/content.ts` | `out/intro-free.mp4` | `scripts/gen-audio-free.ts` | 34 秒自我介绍，有自检脚本 |
 | `Butterworth` | `src/butterworth/` | `out/butterworth.mp4` | `scripts/gen-audio-bw.ts` | 60 秒槟城北海宣传片 |
-| `PenangBridge` | `src/penang/`（默认 props 在 `src/Root.tsx`） | 不提交（照片、BGM 是别人的） | 外部 BGM `public/penang/audio/bgm.mp3`（不提交），拍点 `public/data/penang-bgm.json` | 68 秒槟城大桥历史科普，照片入片，卡现成 BGM；第二版：钩子开头，首尾接成 loop；第三版：宽银幕电影感，照片满屏运镜，地图、片名落日、夜景换成代码画面；说明见 docs/NOTES.md |
+| `PenangBridge` | `src/penang/`（默认 props 在 `src/Root.tsx`） | 不提交（照片、BGM 是别人的） | 外部 BGM `public/penang/audio/bgm.mp3`（不提交），拍点 `public/data/penang-bgm.json` | 68 秒槟城大桥历史科普，照片入片，卡现成 BGM；第二版：钩子开头，首尾接成 loop；第三版：宽银幕电影感，照片满屏运镜，地图、片名落日、夜景换成代码画面；第四版：除结尾一张施工照片外全部是代码画面；说明见 docs/NOTES.md |
 
 前四条的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 1920×1080、30 帧／秒。`Test`、`MyComp` 是脚手架，不用管。
 
@@ -54,5 +54,5 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 ## 案例
 
 - [2026-10-22 槟城北海 60 秒宣传片](docs/cases/2026-10-22-butterworth-promo-60s/case.md)：已交付，JIN 还没评价成片。
-- [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面），第三版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
+- [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面）；JIN 觉得代码画面好，第四版只留结尾一张施工照片，其余全部代码画，第四版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
 - IntroFree 的经验写在 docs/remotion，没有单独的案例记录；Intro、IntroV2 没有记录。

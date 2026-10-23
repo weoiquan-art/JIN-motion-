@@ -38,9 +38,18 @@ const spline = (pts: readonly Pt[], closed: boolean, per: number): [number, numb
 };
 
 export const ISLAND_PTS = spline(ISLAND.map(P), true, 7);
-// The mainland coast is smoothed; the two far corners that close the
-// polygon in the east stay straight.
-export const MAINLAND_PTS = [...spline(MAINLAND.slice(0, -2).map(P), false, 7), ...MAINLAND.slice(-2).map(P)];
+// The mainland coast is smoothed. The polygon is closed far beyond the map
+// window (instead of at its own two corners), so that a low camera looking
+// north never sees its straight closing edge near the horizon.
+export const MAINLAND_PTS = [
+  ...spline(MAINLAND.slice(0, -2).map(P), false, 7),
+  ...([
+    [100.3, 7.5],
+    [102, 7.5],
+    [102, 4.0],
+    [100.43, 4.0],
+  ] as const).map(P),
+];
 
 export const inside = (poly: readonly Pt[], x: number, y: number) => {
   let c = false;

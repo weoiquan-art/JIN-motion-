@@ -11,18 +11,20 @@ const move = z.object({
   x: z.number().describe("照片：画面对准图片的横向位置 %（50 = 居中）；地图：镜头对准的地图 x（px）；代码画面：镜头横移 px"),
   y: z.number().describe("照片：纵向位置 %（可以略小于 0 或大于 100，多出的部分藏在黑边后面）；地图：地图 y（px）；代码画面：竖移 px"),
   scale: z.number().min(0.2).max(6).describe("照片 / 代码画面：放大倍数；地图：每个地图 px 在屏幕上多大"),
-  rotate: z.number().min(-25).max(25).describe("照片 / 代码画面：画面旋转（度）；地图：镜头朝向（0 = 正北朝上）"),
+  rotate: z.number().min(-180).max(180).describe("照片 / 代码画面：画面旋转（度，几度以内）；地图：镜头朝向（0 = 正北朝上，90 = 朝东）"),
   tilt: z.number().min(0).max(78).describe("地图：俯仰角（0 = 正上方往下看，70 以上贴着海面能看到天空）；照片不用"),
 });
 
 export const shotSchema = z.object({
   name: z.string().describe("镜头名（Studio 时间线上显示）"),
   kind: z
-    .enum(["photo", "map", "sunset", "night", "closure"])
-    .describe("photo = 图片；map = 代码画的海峡地图；sunset = 落日双塔；night = 夜里开上桥；closure = 1985 桥面合龙"),
+    .enum(["photo", "map", "sunset", "catamaran", "ferry", "jetty", "build", "closure", "walk", "dusk", "night", "marathon"])
+    .describe(
+      "photo = 图片；map = 代码画的海峡地图；sunset = 落日双塔；catamaran = 落日里双体客船开过；ferry = 老式渡轮驶过乔治市；jetty = 码头排队的车；build = 建塔、桥面往外伸；closure = 1985 桥面合龙；walk = 通车前市民走桥；dusk = 黄昏开车（双向 4 车道）；night = 夜里开车（双向 6 车道）；marathon = 桥上马拉松",
+    ),
   mapMode: z
-    .enum(["ferries", "why", "bridge", "industry"])
-    .describe("kind = map 时画什么：渡轮来回 / 自由港划掉、镜头飞到峇六拜 / 大桥一拍一段画过海峡 / 工厂和港口之间的车流"),
+    .enum(["hook", "ferries", "why", "bridge", "industry"])
+    .describe("kind = map 时画什么：今天的海峡（开头钩子）/ 渡轮来回 / 自由港划掉、镜头飞到峇六拜 / 大桥一拍一段画过海峡 / 工厂和港口之间的车流"),
   src: z.string().describe("public/ 下的图片路径（kind = photo）"),
   tone: z.enum(["none", "aged", "bw"]).describe("调色：原样 / 做旧 / 黑白老胶片"),
   at: z.number().describe("从第几拍开始（片内拍号，第 n 小节 = 4n）"),
@@ -33,8 +35,10 @@ export const shotSchema = z.object({
   from: move.describe("运镜起点"),
   to: move.describe("运镜终点"),
   ease: z
-    .enum(["drift", "inOut", "linear", "swoop"])
-    .describe("运镜曲线：drift = 匀速为主；inOut = 两头停稳（首尾接 loop 的镜头用）；linear = 匀速；swoop = 前半段几乎不动，正中那一拍猛地飞到终点"),
+    .enum(["drift", "inOut", "linear", "swoop", "accel"])
+    .describe(
+      "运镜曲线：drift = 匀速为主；inOut = 两头停稳（首尾接 loop 的镜头用）；linear = 匀速；swoop = 前半段几乎不动，正中那一拍猛地飞到终点；accel = 从静止慢慢加速，越来越快（俯冲进重拍）",
+    ),
   dim: z.number().min(0).max(1).describe("压暗（0 = 不压暗）"),
   light: z
     .object({

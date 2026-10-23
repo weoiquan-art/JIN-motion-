@@ -5,6 +5,7 @@
 //              Lepas and the factories rise on the beats
 //   bridge   – the bridge is drawn across the strait one step per beat
 //   industry – traffic flows over the bridge between the factories and the port
+//   hook     – the strait today, no labels: the opening dive onto the bridge
 // Positions are schematic (see docs/NOTES.md), not a survey map.
 
 import React from "react";
@@ -14,7 +15,7 @@ import { EN, ZH_SANS } from "./fonts";
 import { inside, ISLAND_PTS, MAINLAND_PTS, makeView, P, polyline, type Pt, type View } from "./map3d";
 import type { SceneProps } from "./scenes";
 
-export type MapMode = "ferries" | "why" | "bridge" | "industry";
+export type MapMode = "hook" | "ferries" | "why" | "bridge" | "industry";
 
 // ------------------------------------------------------------------ places
 const GT = P([100.3395, 5.4175]); // George Town
@@ -354,26 +355,34 @@ export const MapWorld: React.FC<SceneProps & { mode: MapMode }> = ({ mode, frame
   // bridge: one step per beat for six beats, from the island to the mainland
   const steps = 6;
   let drawn = 0;
-  if (mode === "industry") drawn = BRIDGE.length;
+  if (mode === "industry" || mode === "hook") drawn = BRIDGE.length;
   if (mode === "bridge") {
     for (let k = 0; k < steps; k++) drawn += whip(frame - at(k), 0.15, 9) / steps;
     drawn *= BRIDGE.length;
   }
-  const lit = mode === "industry" ? 1 : mode === "bridge" ? inv(at(steps), at(steps + 1.5), frame) : 0;
+  const lit = mode === "industry" || mode === "hook" ? 1 : mode === "bridge" ? inv(at(steps), at(steps + 1.5), frame) : 0;
   const blHit = mode === "why" ? hitEnv(frame - at(4), 14) : 0;
 
   // ---- sky (only when the camera is low enough to see the horizon)
   const hz = v.horizon;
   const land = v.path(ISLAND_PTS, true);
   const main = v.path(MAINLAND_PTS, true);
+  // the opening is the strait today, at night: darker land, brighter towns
+  const night = mode === "hook";
 
   return (
-    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 62%, #0a2236 0%, #061627 45%, #030a14 100%)" }}>
+    <AbsoluteFill
+      style={{
+        background: night
+          ? "radial-gradient(ellipse at 50% 62%, #071a2c 0%, #04101e 45%, #02060d 100%)"
+          : "radial-gradient(ellipse at 50% 62%, #0a2236 0%, #061627 45%, #030a14 100%)",
+      }}
+    >
       <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0 }}>
         <defs>
           <linearGradient id="pbMapLand" x1="0" y1="0" x2="0" y2="1080" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#3b5b72" />
-            <stop offset="1" stopColor="#4a6c84" />
+            <stop offset="0" stopColor={night ? "#1b2c3c" : "#3b5b72"} />
+            <stop offset="1" stopColor={night ? "#243a4e" : "#4a6c84"} />
           </linearGradient>
           <linearGradient id="pbMapSky" x1="0" y1={hz - 520} x2="0" y2={hz} gradientUnits="userSpaceOnUse">
             <stop offset="0" stopColor="#081326" />
@@ -410,9 +419,14 @@ export const MapWorld: React.FC<SceneProps & { mode: MapMode }> = ({ mode, frame
           {LIGHTS.map((l, i) => {
             const p = v.project(l.x, l.y, 0);
             if (!inFrame(p, 20)) return null;
-            const r = clamp(l.r * v.scaleAt(p[2]) * 0.55, 0.6, 3.4);
-            return <circle key={i} cx={p[0]} cy={p[1]} r={r} fill={l.warm ? "#ffd59a" : "#e4f3ff"}
-              opacity={l.a * (0.78 + 0.22 * noise1(t * 1.7 + l.seed, 5))} />;
+            const r = clamp(l.r * v.scaleAt(p[2]) * 0.55, night ? 1.1 : 0.6, 3.4);
+            const a = l.a * (0.78 + 0.22 * noise1(t * 1.7 + l.seed, 5));
+            return (
+              <g key={i}>
+                {night ? <circle cx={p[0]} cy={p[1]} r={r * 4} fill={l.warm ? "#ffb35a" : "#bfe0ff"} opacity={a * 0.12} /> : null}
+                <circle cx={p[0]} cy={p[1]} r={r} fill={l.warm ? "#ffd59a" : "#e4f3ff"} opacity={a} />
+              </g>
+            );
           })}
         </g>
         {/* the ferry route */}
@@ -443,7 +457,7 @@ export const MapWorld: React.FC<SceneProps & { mode: MapMode }> = ({ mode, frame
             })()
           : null}
         <Bridge v={v} drawn={drawn} lit={lit} warm={warm} frame={frame} />
-        <Traffic v={v} t={t} opacity={mode === "industry" ? 1 : 0} warm={warm} />
+        <Traffic v={v} t={t} opacity={mode === "industry" || mode === "hook" ? 1 : 0} warm={warm} />
         <Ferries v={v} t={t} opacity={mode === "ferries" ? 1 : 0.55} />
         {/* sky and haze over the far sea */}
         {hz > -40 ? <rect x={-10} y={-10} width={1940} height={hz + 10} fill="url(#pbMapSky)" /> : null}
