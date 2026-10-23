@@ -342,8 +342,10 @@ export const NightScene: React.FC<SceneProps & { dusk: boolean }> = ({ frame, b,
       const a = P(x + dx, 0.75, z);
       const t = P(x + dx, 0.75, zTrail);
       if (!a || !t) continue;
-      const r = Math.max(1.2, (FL * size) / z);
-      const fade = clamp(1.2 - z / 760);
+      // capped and faded right by the camera, so a passing car is a quick
+      // streak and not a huge white blob
+      const r = Math.min(14, Math.max(1.2, (FL * size) / z));
+      const fade = clamp(1.2 - z / 760) * clamp((z - 3) / 14);
       cars.push(
         <g key={`${key}${dx}`} opacity={fade}>
           <circle cx={a[0]} cy={a[1]} r={r * 7} fill={glow} opacity={0.22} />
