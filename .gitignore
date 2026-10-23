@@ -5,3 +5,13 @@ dist
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+# PenangBridge: photos and BGM belong to other people; keep them out of the
+# public repo (see docs/NOTES.md for where to put them locally).
+public/penang/images/
+public/penang/audio/
+
+# Remotion agent skills installed by `npx remotion skills add` (no license file
+# upstream, so they are not redistributed here; skills-lock.json pins them).
+.agents/skills/remotion-*
+.claude/skills/remotion-*

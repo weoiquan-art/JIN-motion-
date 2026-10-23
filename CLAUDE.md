@@ -17,8 +17,9 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 | `IntroV2` | `src/intro-v2/` | `out/intro-v2.mp4` | `scripts/gen-audio-v2.ts` | 30 秒 |
 | `IntroFree` | `src/intro-free/`、`src/content.ts` | `out/intro-free.mp4` | `scripts/gen-audio-free.ts` | 34 秒自我介绍，有自检脚本 |
 | `Butterworth` | `src/butterworth/` | `out/butterworth.mp4` | `scripts/gen-audio-bw.ts` | 60 秒槟城北海宣传片 |
+| `PenangBridge` | `src/penang/`（默认 props 在 `src/Root.tsx`） | `out/penang-bridge.mp4`（第四版起 JIN 要求提交） | 外部 BGM `public/penang/audio/bgm.mp3`（不提交），拍点 `public/data/penang-bgm.json` | 68 秒槟城大桥历史科普，照片入片，卡现成 BGM；第二版：钩子开头，首尾接成 loop；第三版：宽银幕电影感，照片满屏运镜，地图、片名落日、夜景换成代码画面；第四版：除结尾一张施工照片外全部是代码画面；说明见 docs/NOTES.md |
 
-配乐都写到 `public/audio/`。都是 1920×1080、30 帧／秒。`Test`、`MyComp` 是脚手架，不用管。
+前四条的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 1920×1080、30 帧／秒。`Test`、`MyComp` 是脚手架，不用管。
 
 ## 命令（在 claude.ai 云端容器里跑过）
 
@@ -29,6 +30,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - 生成配乐：`npm run audio`、`audio:v2`、`audio:free`、`audio:bw`。改了时间轴就重跑。
 - 下载字体：`npm run fonts`（Intro、IntroV2、Butterworth）、`npm run fonts:free`（IntroFree）。画面上加了新字就重跑。
 - IntroFree 自检：`npm run check:intro-free`（节拍对齐、削波、静音段、每段响度）。
+- PenangBridge：`npm run fonts:penang`（改了文字就跑）、`npm run analyze:penang`（librosa 分析 BGM，要先 `pip install librosa soundfile --break-system-packages`）、`npm run render:penang-check`（540p 自检）、`npm run render:penang`（1080p）、`npm run render:penang-720`（从 1080p 缩）、`python3 scripts/penang/check-sync.py <成片> --click <输出>`（卡点量化检查和 click 预览）、`node scripts/penang/stills.mjs <目录> <缩放> <帧…>`（批量静帧）。官方 skill：`npx remotion skills add`（不提交）。
 
 ## 硬规矩
 
@@ -36,6 +38,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - **每条片子一个时间表**（`timeline.ts`，IntroFree 另有 `beat.ts`），管时间、文字和关键帧；配乐脚本直接 import 它，声音按帧号对齐画面。配乐脚本是用 Node 直接跑的，所以这些文件只能 import 同样不依赖 React／Remotion 的文件，路径要写 `.ts` 后缀（IntroFree 的 `timeline.ts` import `beat.ts`、`content.ts` 就是这样）。
 - **动画是帧的纯函数**：不用 `useState`、`Math.random()`、`Date`；随机用 `hash`、`noise1`。运动模糊会传入小数帧，所有曲线都要对小数帧成立。
 - `out/` 在 `.gitignore` 里，成片要用 `git add -f out/<名字>.mp4`，和 wav、新下载的字体一起提交。单个文件要小于 100 MB（北海片 38 MB）。
+- **用了别人的照片或音乐的片子（PenangBridge）不提交素材**：`public/penang/images/`、`public/penang/audio/` 在 `.gitignore` 里。成片原本也不提交；第四版 JIN 知道仓库公开、成片里有别人的 BGM 和照片后，说“推吧”，所以 `out/penang-bridge.mp4` 提交了。
 
 ## 做新片的流程
 
@@ -51,4 +54,5 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 ## 案例
 
 - [2026-10-22 槟城北海 60 秒宣传片](docs/cases/2026-10-22-butterworth-promo-60s/case.md)：已交付，JIN 还没评价成片。
+- [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面）；JIN 觉得代码画面好，第四版只留结尾一张施工照片，其余全部代码画，第四版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
 - IntroFree 的经验写在 docs/remotion，没有单独的案例记录；Intro、IntroV2 没有记录。
