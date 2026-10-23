@@ -19,8 +19,10 @@ type Look = PenangProps["look"];
 
 // Frames a shot is shown before its own start (fading in under the cut)
 // and after the next shot starts (moving out).
-const PRE: Record<Enter, number> = { cut: 0, flash: 0, whip: 0, whipUp: 0, leak: 6, zoom: 0, fade: 8, dark: 0 };
-const POST: Record<Enter, number> = { cut: 0, flash: 0, whip: 9, whipUp: 9, leak: 8, zoom: 10, fade: 8, dark: 0 };
+const PRE: Record<Enter, number> = { cut: 0, flash: 0, whip: 0, whipUp: 0, leak: 6, zoom: 0, fade: 8, dark: 0, dive: 0 };
+const POST: Record<Enter, number> = { cut: 0, flash: 0, whip: 9, whipUp: 9, leak: 8, zoom: 10, fade: 8, dark: 0, dive: 0 };
+// "dive": the outgoing shot rushes in over its last frames before the cut
+const DIVE_FRAMES = 8;
 
 export type Slot = {
   readonly shot: Shot;
@@ -63,8 +65,8 @@ const mix = (a: Move, b: Move, e: number): Move => ({
   tilt: lerp(a.tilt, b.tilt, e),
 });
 
-type TState = { opacity: number; tx: number; ty: number; scale: number; smearX: number; smearY: number; black: number };
-const IDENTITY: TState = { opacity: 1, tx: 0, ty: 0, scale: 1, smearX: 0, smearY: 0, black: 0 };
+type TState = { opacity: number; tx: number; ty: number; scale: number; smearX: number; smearY: number; black: number; blur: number };
+const IDENTITY: TState = { opacity: 1, tx: 0, ty: 0, scale: 1, smearX: 0, smearY: 0, black: 0, blur: 0 };
 
 const W = 1920 * 1.06;
 const H = 1080 * 1.1;
@@ -91,6 +93,9 @@ const incoming = (enter: Enter, t: number): TState => {
       return { ...IDENTITY, opacity: easeInOut(inv(-8, 8, t)) };
     case "dark":
       return { ...IDENTITY, black: 1 - easeOut(inv(0, 14, t)) };
+    case "dive":
+      // pushed out of the light burst (FxLayer) that peaks on the cut
+      return { ...IDENTITY, scale: lerp(1.3, 1, whip(t, 0.1, 14)), opacity: inv(-0.75, 1.5, t) };
     default:
       return IDENTITY;
   }
@@ -113,6 +118,11 @@ const outgoing = (nextEnter: Enter, t: number): TState => {
       return { ...IDENTITY, scale: lerp(1, 1.7, easeIn(inv(-0.75, 10, t))), opacity: 1 - inv(0, 9, t) };
     case "dark":
       return { ...IDENTITY, black: easeIn(inv(-14, 0, t)) };
+    case "dive": {
+      // keep diving in, faster and faster, until the cut
+      const k = easeIn(inv(-DIVE_FRAMES, 0, t));
+      return { ...IDENTITY, scale: 1 + 0.6 * k, blur: 9 * k };
+    }
     default:
       return IDENTITY;
   }
@@ -126,6 +136,7 @@ const combine = (a: TState, b: TState): TState => ({
   smearX: a.smearX + b.smearX,
   smearY: a.smearY + b.smearY,
   black: Math.max(a.black, b.black),
+  blur: Math.max(a.blur, b.blur),
 });
 
 // Old photos are shown like a film print: a little flicker and gate weave
@@ -252,7 +263,14 @@ const ShotFrame: React.FC<{ slot: Slot; from: number; clock: Clock; look: Look }
   const smear = Math.hypot(st.smearX, st.smearY);
   const blurId = `pb-whip-${slot.start}`;
   return (
-    <AbsoluteFill style={{ opacity: st.opacity, translate: `${st.tx}px ${st.ty}px`, scale: `${st.scale}` }}>
+    <AbsoluteFill
+      style={{
+        opacity: st.opacity,
+        translate: `${st.tx}px ${st.ty}px`,
+        scale: `${st.scale}`,
+        filter: st.blur > 0.3 ? `blur(${st.blur.toFixed(1)}px)` : undefined,
+      }}
+    >
       {smear > 2 ? (
         // Motion blur for the whips: a Gaussian blur along the motion only,
         // about a third of the distance travelled in one frame.

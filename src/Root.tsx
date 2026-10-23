@@ -119,7 +119,7 @@ export const RemotionRoot: React.FC = () => {
               tone: "none",
               at: 32,
               beats: 8,
-              enter: "flash",
+              enter: "dive",
               from: { x: 0, y: 0, scale: 1.0, rotate: 0, tilt: 0 },
               to: { x: -40, y: 12, scale: 1.08, rotate: 0, tilt: 0 },
               ease: "drift",

@@ -7,7 +7,7 @@
 
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
-import { clamp, hash, hitEnv, inv, lerp, noise1 } from "./anim";
+import { clamp, easeIn, hash, hitEnv, inv, lerp, noise1 } from "./anim";
 import type { Clock } from "./beats";
 import type { Slot } from "./PhotoLayer";
 import type { PenangProps } from "./schema";
@@ -169,10 +169,15 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
 
   // 3. flashes and leaks on the cuts
   let flash = 0;
+  let burst = 0;
   let leak = 0;
   let leakPhase = 0;
   for (const s of slots) {
     const t = frame - s.start;
+    // dive: warm light builds over the last frames before the cut and bursts on it
+    if (s.shot.enter === "dive" && t > -8 && t < 40) {
+      burst = Math.max(burst, t < 0 ? Math.pow(easeIn(inv(-7, 0, t)), 2) : Math.exp(-t / 7));
+    }
     // full white on the cut frame itself, then decay (the cut frame carries the jump)
     if (s.shot.enter === "flash" && t >= 0) flash = Math.max(flash, Math.exp(-t / 4.5));
     if (s.shot.enter === "zoom") flash = Math.max(flash, 0.3 * hitEnv(t, 4));
@@ -224,6 +229,15 @@ export const FxLayer: React.FC<{ clock: Clock; slots: readonly Slot[]; flares: r
         />
       ) : null}
       {flash > 0.005 ? <AbsoluteFill style={{ backgroundColor: "#ffffff", opacity: clamp(flash) }} /> : null}
+      {burst > 0.005 ? (
+        <AbsoluteFill
+          style={{
+            background: "radial-gradient(circle at 50% 52%, #fffaf0 0%, #ffe2ac 30%, #ffb070 64%, #ff8a58 100%)",
+            mixBlendMode: "screen",
+            opacity: clamp(burst),
+          }}
+        />
+      ) : null}
       {leak * look.leak > 0.005 ? <LightLeak phase={leakPhase} strength={leak * look.leak} warm={look.warm} /> : null}
       {look.grade > 0 ? (
         <>

@@ -30,8 +30,10 @@ export const shotSchema = z.object({
   at: z.number().describe("从第几拍开始（片内拍号，第 n 小节 = 4n）"),
   beats: z.number().min(0.5).describe("持续几拍"),
   enter: z
-    .enum(["cut", "flash", "whip", "whipUp", "leak", "zoom", "fade", "dark"])
-    .describe("进场转场：硬切 / 闪白 / 横甩 / 竖甩 / 漏光 / 穿越推镜 / 叠化 / 压暗"),
+    .enum(["cut", "flash", "whip", "whipUp", "leak", "zoom", "fade", "dark", "dive"])
+    .describe(
+      "进场转场：硬切 / 闪白 / 横甩 / 竖甩 / 漏光 / 穿越推镜 / 叠化 / 压暗 / 俯冲穿过（上一个镜头在拍点前半拍越冲越快、变模糊，暖光在拍点上炸开，这个镜头从光里推出来）",
+    ),
   from: move.describe("运镜起点"),
   to: move.describe("运镜终点"),
   ease: z
