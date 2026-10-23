@@ -95,6 +95,8 @@ for (let lat = 5.15; lat <= 5.6 + 1e-9; lat += 0.025)
 // ------------------------------------------------------------------ pieces
 const inFrame = (p: readonly number[] | null, m = 120): p is [number, number, number] =>
   !!p && p[0] > -m && p[0] < 1920 + m && p[1] > -m && p[1] < 1080 + m;
+// labels fade out as they reach the frame edges instead of being cut off
+const edgeFade = (x: number, y: number) => clamp((x - 150) / 160) * clamp((1770 - x) / 160) * clamp((y - 170) / 80) * clamp((930 - y) / 80);
 
 const Box: React.FC<{ v: View; x: number; y: number; w: number; d: number; h: number; lit: string; shade: string; top: string }> = ({
   v,
@@ -156,8 +158,10 @@ const Label: React.FC<{ v: View; at: Pt; zh: string; en: string; opacity: number
   const s = v.scaleAt(g[2]);
   const top = v.project(at[0], at[1], lift / s) ?? g;
   const ty = Math.min(top[1], g[1] - 18);
+  const a = opacity * edgeFade(top[0], ty - 20);
+  if (a <= 0.01) return null;
   return (
-    <g opacity={opacity}>
+    <g opacity={a}>
       <line x1={g[0]} y1={g[1]} x2={top[0]} y2={ty} stroke="#e6f4fb" strokeWidth={1.4} opacity={0.55} />
       <circle cx={g[0]} cy={g[1]} r={9} fill={dot} opacity={0.18} />
       <circle cx={g[0]} cy={g[1]} r={4} fill={dot} />
@@ -183,7 +187,7 @@ const Water: React.FC<{ v: View; at: Pt; zh: string; en: string; opacity: number
   const g = v.project(at[0], at[1], 0);
   if (!inFrame(g, 200) || opacity <= 0.01) return null;
   return (
-    <g textAnchor="middle" opacity={opacity}>
+    <g textAnchor="middle" opacity={opacity * edgeFade(g[0], g[1])}>
       <text x={g[0]} y={g[1]} fontFamily={ZH_SANS} fontSize={26} fontWeight={500} fill="#8fc0d8" letterSpacing="0.6em">{zh}</text>
       <text x={g[0]} y={g[1] + 26} fontFamily={EN} fontSize={14} fontWeight={600} fill="#6f9fb8" letterSpacing="0.5em">{en}</text>
     </g>
