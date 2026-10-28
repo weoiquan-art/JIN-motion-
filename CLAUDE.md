@@ -8,6 +8,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - [docs/remotion/动效.md](docs/remotion/动效.md)：镜头、转场、节拍、声画同步、自检
 - [docs/remotion/动画.md](docs/remotion/动画.md)：单个元素怎么动、扁平插画场景、地图
 - `docs/cases/`：每条片子的案例记录（见文末“案例”）
+- `.claude/skills/video-shotcraft/`:镜头配方库(上游 Apache-2.0,精简版,说明见其中 UPSTREAM.md)。做运镜、转场、节拍镜头时去 `references/shots/` 挑配方参考;只当灵感库用,不走它的产品宣传片全流程。
 
 ## 片子
 
