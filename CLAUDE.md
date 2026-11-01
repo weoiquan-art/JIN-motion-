@@ -9,6 +9,8 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - [docs/remotion/动画.md](docs/remotion/动画.md)：单个元素怎么动、扁平插画场景、地图
 - `docs/cases/`：每条片子的案例记录（见文末“案例”）
 - `.claude/skills/video-shotcraft/`:镜头配方库(上游 Apache-2.0,精简版,说明见其中 UPSTREAM.md)。做运镜、转场、节拍镜头时去 `references/shots/` 挑配方参考;只当灵感库用,不走它的产品宣传片全流程。
+- vibe-motion 技能(作者已停止维护、无授权文件,**不提交进本仓库**):JIN 电脑的 `~/.claude/skills/` 里装了一份(17 个,含 sound)。云端会话要用时先跑 `npx skills add vibe-motion/skills`(交互式,选 Claude Code)。常用:threejs-earth-render(地球开场)、remotion-3d-ticker(大数字)、fisheye-motion(推镜标注)、colorize(老照片上色)、disney-animation-rule-skill(动画原则)。
+- 音效用 sound 技能(Freesound 真实音效):**只能在 JIN 电脑上跑**,云端连不上 Freesound(2026-11-01 测过返回 403)。云端只做画面,音效留到本地;优先 CC0,CC-BY 要在片尾署名。
 
 ## 片子
 
