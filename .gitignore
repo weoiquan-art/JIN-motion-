@@ -15,3 +15,8 @@ public/penang/audio/
 # upstream, so they are not redistributed here; skills-lock.json pins them).
 .agents/skills/remotion-*
 .claude/skills/remotion-*
+
+# vibe-motion 技能(JIN 要求放进来):下面三个名字以 remotion- 开头,要单独放行
+!.claude/skills/remotion-3d-ticker/
+!.claude/skills/remotion-candlestick/
+!.claude/skills/remotion-vinyl-player/
