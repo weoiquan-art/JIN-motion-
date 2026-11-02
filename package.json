@@ -45,6 +45,10 @@
     "analyze:penang": "python3 scripts/penang/analyze-bgm.py",
     "render:penang": "npm run render:cloud -- PenangBridge out/penang-bridge.mp4 --codec=h264",
     "render:penang-720": "ffmpeg -y -hide_banner -loglevel error -i out/penang-bridge.mp4 -vf scale=1280:720:flags=lanczos -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -c:a copy -movflags +faststart out/penang-bridge-720p.mp4",
-    "render:penang-check": "npm run render:cloud -- PenangBridge out/penang-bridge-540p-check.mp4 --codec=h264 --scale=0.5"
+    "render:penang-check": "npm run render:cloud -- PenangBridge out/penang-bridge-540p-check.mp4 --codec=h264 --scale=0.5",
+    "fonts:jinmy": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-jinmy.ts",
+    "audio:jinmy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-jinmy.ts",
+    "prep:jinmy": "mkdir -p public/jinmy/frames && npx remotion ffmpeg -loglevel error -y -ss 4.0 -i public/jinmy/clips/clip1.mp4 -frames:v 1 public/jinmy/frames/freeze.png",
+    "render:jinmy": "npm run render:cloud -- JinmyPromo out/jinmyaigc-promo.mp4 --codec=h264"
   }
 }

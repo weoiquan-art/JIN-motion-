@@ -20,3 +20,7 @@ public/penang/audio/
 !.claude/skills/remotion-3d-ticker/
 !.claude/skills/remotion-candlestick/
 !.claude/skills/remotion-vinyl-player/
+
+# jinmyaigc promo: the sample clips (and a still taken from one) are JIN's
+# site outputs, not committed; put them back in public/jinmy/ to render
+public/jinmy/
