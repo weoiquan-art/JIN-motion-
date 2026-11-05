@@ -18,8 +18,9 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 | `IntroFree` | `src/intro-free/`、`src/content.ts` | `out/intro-free.mp4` | `scripts/gen-audio-free.ts` | 34 秒自我介绍，有自检脚本 |
 | `Butterworth` | `src/butterworth/` | `out/butterworth.mp4` | `scripts/gen-audio-bw.ts` | 60 秒槟城北海宣传片 |
 | `PenangBridge` | `src/penang/`（默认 props 在 `src/Root.tsx`） | `out/penang-bridge.mp4`（第四版起 JIN 要求提交） | 外部 BGM `public/penang/audio/bgm.mp3`（不提交），拍点 `public/data/penang-bgm.json` | 68 秒槟城大桥历史科普，照片入片，卡现成 BGM；第二版：钩子开头，首尾接成 loop；第三版：宽银幕电影感，照片满屏运镜，地图、片名落日、夜景换成代码画面；第四版：除结尾一张施工照片外全部是代码画面；说明见 docs/NOTES.md |
+| `SelfBlame` | `src/self-blame/` | `out/self-blame.mp4`（提交） | `scripts/gen-audio-self-blame.ts`，另混 7 条 Freesound CC0 音效（`public/self-blame/sfx/`，来源见其中 SOURCES.md） | 92.8 秒心理科普“为什么被责怪时先怀疑自己”，中英双语，有自检脚本；在 JIN 的 Windows 电脑上本地做的 |
 
-前四条的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 1920×1080、30 帧／秒。`Test`、`MyComp` 是脚手架，不用管。
+前四条和 SelfBlame 的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 1920×1080、30 帧／秒。`Test`、`MyComp` 是脚手架，不用管。
 
 ## 命令（在 claude.ai 云端容器里跑过）
 
@@ -30,7 +31,15 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - 生成配乐：`npm run audio`、`audio:v2`、`audio:free`、`audio:bw`。改了时间轴就重跑。
 - 下载字体：`npm run fonts`（Intro、IntroV2、Butterworth）、`npm run fonts:free`（IntroFree）。画面上加了新字就重跑。
 - IntroFree 自检：`npm run check:intro-free`（节拍对齐、削波、静音段、每段响度）。
+- SelfBlame：`npm run fonts:self-blame`（改了 `src/self-blame/content.ts` 就跑）、`npm run audio:self-blame`（要 ffmpeg 在 PATH 上，用来解码音效）、`npm run render:self-blame`、`npm run check:self-blame`（节拍、削波、静音、分段响度、画面变化）。
 - PenangBridge：`npm run fonts:penang`（改了文字就跑）、`npm run analyze:penang`（librosa 分析 BGM，要先 `pip install librosa soundfile --break-system-packages`）、`npm run render:penang-check`（540p 自检）、`npm run render:penang`（1080p）、`npm run render:penang-720`（从 1080p 缩）、`python3 scripts/penang/check-sync.py <成片> --click <输出>`（卡点量化检查和 click 预览）、`node scripts/penang/stills.mjs <目录> <缩放> <帧…>`（批量静帧）。官方 skill：`npx remotion skills add`（不提交）。
+
+## 在 JIN 的 Windows 电脑上本地跑（2026-11-05 SelfBlame 时测过）
+
+- 上面的命令是云端容器写的，本地不能照搬：渲染用 `npx remotion render src/index.ts <Composition> out/<名字>.mp4 --codec=h264`，浏览器用 Remotion 自带的（第一次会自动下载 Chrome Headless Shell，约 113 MB），不要用 `/opt/pw-browsers` 的路径和 `render:cloud`。
+- 批量静帧：`node scripts/stills.mjs <Composition> <目录> <缩放> <帧…>`，不设 `REMOTION_BROWSER` 时就用 Remotion 自带的浏览器。
+- npm 脚本里的 `NODE_USE_ENV_PROXY=1 node …` 在 Windows 的 cmd 下不认；本地直连 Google 字体，新脚本不加这个前缀。
+- 本机只有 `python`，没有 `python3`；sound 技能的 `sfx.py` 要先设 `PYTHONUTF8=1`。
 
 ## 硬规矩
 
@@ -43,7 +52,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 ## 做新片的流程
 
 1. **先问清楚再开工。** JIN 的需求常常只有一句，而且 JIN 说过“说话可能抽象，请先问完整意思”。用选择题问三项：做成什么（代码动画成片／AI 视频提示词包／两者结合）、画幅和时长、画面文字的语言。
-2. **画面里的事实都要有来源。** 数字、专名、史实，每一条都查到出处并记进案例；查不到就不写数字，或者先问 JIN。
+2. **画面里的事实都要有来源。** 数字、专名、史实，每一条都查到出处并记进案例；查不到就不写数字，或者先问 JIN。心理、健康类说法要查到论文或权威机构，措辞不诊断（做法见 SelfBlame 的案例）。
 3. **先定节拍网格和时间表，再做画面。** 选每拍是整数帧的 BPM（docs/remotion/动效.md 第 1 节）；重点动作从节拍开始（第 2 节）。
 4. **先定标题安全区，再摆道具。** 100 px 的中文标题一行不超过 10 个字；一句话停留的时间要够读完。
 5. **自检。** 静帧拼图看 → 改 → 渲整片 → 按帧号抽帧（每 2.5 秒一帧，加上转场中间的帧）再看；能写自检脚本就照 IntroFree 写。
@@ -55,4 +64,5 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 
 - [2026-10-22 槟城北海 60 秒宣传片](docs/cases/2026-10-22-butterworth-promo-60s/case.md)：已交付，JIN 还没评价成片。
 - [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面）；JIN 觉得代码画面好，第四版只留结尾一张施工照片，其余全部代码画，第四版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
+- [2026-11-05 心理科普“为什么被责怪时先怀疑自己”](docs/cases/2026-11-05-self-blame-explainer/case.md)：JIN 定了题目和讲法，其余由 Claude 决定、不问；在 JIN 的 Windows 电脑上本地完成，分支 `claude/self-blame-explainer` 只在本地提交、没有推送；已交付，JIN 还没评价。
 - IntroFree 的经验写在 docs/remotion，没有单独的案例记录；Intro、IntroV2 没有记录。

@@ -10,6 +10,8 @@ import { IntroV2 } from "./intro-v2/IntroV2";
 import * as Free from "./intro-free/beat.ts";
 import { IntroFree } from "./intro-free/IntroFree";
 import * as V2 from "./intro-v2/timeline.ts";
+import * as SB from "./self-blame/beat.ts";
+import { SelfBlame } from "./self-blame/SelfBlame";
 import { TestComposition } from "./TestComposition";
 
 export const RemotionRoot: React.FC = () => {
@@ -47,6 +49,14 @@ export const RemotionRoot: React.FC = () => {
         fps={Free.FPS}
         width={Free.WIDTH}
         height={Free.HEIGHT}
+      />
+      <Composition
+        id="SelfBlame"
+        component={SelfBlame}
+        durationInFrames={SB.DURATION}
+        fps={SB.FPS}
+        width={SB.WIDTH}
+        height={SB.HEIGHT}
       />
       <Composition
         id="Butterworth"

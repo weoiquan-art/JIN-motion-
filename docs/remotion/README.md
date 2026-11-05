@@ -1,6 +1,6 @@
 # Remotion 经验
 
-从这个仓库的 IntroFree（`src/intro-free/`）、北海宣传片 Butterworth（`src/butterworth/`）和槟城大桥片 PenangBridge（`src/penang/`）里总结出来的经验，分两份；后两条片子补的条目分别标了“（北海片）”“（槟城大桥片）”：
+从这个仓库的 IntroFree（`src/intro-free/`）、北海宣传片 Butterworth（`src/butterworth/`）、槟城大桥片 PenangBridge（`src/penang/`）和心理科普片 SelfBlame（`src/self-blame/`）里总结出来的经验，分两份；后三条片子补的条目分别标了“（北海片）”“（槟城大桥片）”“（自责科普片）”：
 
 - [动效.md](./动效.md)：镜头、转场、运动模糊、节拍同步、声画对齐、整体节奏——**一个镜头/一段画面怎么"动"起来**
 - [动画.md](./动画.md)：曲线、弹簧、打字、挤压拉伸、像素字、图层拆分——**单个元素怎么动**
@@ -14,6 +14,9 @@
 - 画面里写出来的数字、专名、史实都要查到来源并记进案例；查不到就不写数字，或者先问 JIN。北海片的“第二大桥 24 km”是凭记忆写的，就是反例。
 - （槟城大桥片）JIN 的提示词可能没出现在对话里：那次开头那段很长的提示词没显示，只看到“先让我发完所有图”。在问“你要什么”之前，先用 `list_events` 翻一遍会话记录。
 - （槟城大桥片）云端的网络策略会挡住维基百科、新闻网站（403）。事实改用搜索结果的摘要核对，在案例里写明“没有直接读原文”。
+- （自责科普片）JIN 已经写明了形式、画幅时长、语言，又说“不用问我，直接做”，就不问。
+- （自责科普片）心理、健康类题材：每条说法先查到论文或权威机构（NHS、大学研究中心）再写进文字常量；措辞用“有些人／研究发现／理论认为／可能”，不说“你一定是”，练习只说“试试”，不承诺效果；片尾加求助建议和“不能替代诊断”。出处直接写在字幕下面一行小字（作者, 年份），片尾列参考资料，案例里写清楚每条读的是摘要还是全文。
+- （自责科普片）查论文：PubMed 的 E-utilities 接口（`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=<PMID>&rettype=abstract&retmode=text`）直接给摘要原文，比打开 PubMed 网页（要 cookie）可靠；`esearch.fcgi?term=…` 查 PMID。APA Dictionary 是前端渲染，WebFetch 和 curl 都读不到正文。PDF 要用 pypdf 之类转成文字再搜，WebFetch 读不了 PDF 的压缩流。
 
 **字体**
 - 云端渲染浏览器访问不了 fonts.gstatic.com，字体要放 `public/fonts/`，用 `@remotion/fonts` 的 `loadFont()`。它自带 `delayRender()`，字体没加载完不会出帧；文件缺失会直接报错，不会悄悄换成系统字体。
@@ -29,6 +32,7 @@
 - （北海片）用的是 `npx remotion still` 一帧一帧渲，每次都要重新打包，慢；下次照上面的 `renderStill` 做法。拼图用 Python（PIL），每格写上时间和帧号，回头对得上。
 - （北海片）1920×1080、1,800 帧的扁平插画整片渲染约 3 分钟；运动模糊（6 次采样）只开在甩镜头那二十来帧。
 - （槟城大桥片）`--scale=2/3` 出 720p 会报错：高度算出来是 720.000000036，不是整数。改成先用 `--scale=0.5` 渲一版自检（62 秒约 2 分钟），再渲 1080p，720p 用 ffmpeg lanczos 从 1080p 缩。
+- （自责科普片）在 JIN 的 Windows 电脑上本地渲染：`npx remotion render src/index.ts <Composition> out/<名字>.mp4 --codec=h264`，第一次会自己下载 Chrome Headless Shell（约 113 MB）；1920×1080、2,784 帧约 1 分 50 秒（12 核）。批量静帧用 `scripts/stills.mjs`（不设 `REMOTION_BROWSER` 就用自带浏览器）。
 - （槟城大桥片）给 Studio 调的片子：props 用 zod schema，`defaultProps` 直接写在 `<Composition>` 上（官方 skill 的要求，Studio 才能写回）。这样文字就不在单独的常量文件里了，所以字体脚本改成扫描 `src/Root.tsx` 和片子目录里的所有字；合成里再检查一遍 props 里的字，缺字就报错，提示先跑字体下载。
 
 **文案**
