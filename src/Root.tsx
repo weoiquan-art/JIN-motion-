@@ -6,6 +6,8 @@ import { calculatePenangMetadata, PenangBridge } from "./penang/PenangBridge";
 import { penangSchema } from "./penang/schema";
 import { Intro } from "./intro/Intro";
 import { JinmyPromo } from "./jinmy/JinmyPromo";
+import { Rainbow } from "./rainbow/Rainbow";
+import * as RB from "./rainbow/timeline.ts";
 import * as JM from "./jinmy/timeline.ts";
 import { DURATION, FPS, HEIGHT, WIDTH } from "./intro/timeline";
 import { IntroV2 } from "./intro-v2/IntroV2";
@@ -25,6 +27,14 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1920}
         height={1080}
+      />
+      <Composition
+        id="Rainbow"
+        component={Rainbow}
+        durationInFrames={RB.DURATION}
+        fps={RB.FPS}
+        width={RB.WIDTH}
+        height={RB.HEIGHT}
       />
       <Composition
         id="JinmyPromo"

@@ -1,6 +1,6 @@
 # Remotion 经验
 
-从这个仓库的 IntroFree（`src/intro-free/`）、北海宣传片 Butterworth（`src/butterworth/`）、槟城大桥片 PenangBridge（`src/penang/`）和 jinmyaigc 竖屏片 JinmyPromo（`src/jinmy/`）里总结出来的经验，分两份；后三条片子补的条目分别标了“（北海片）”“（槟城大桥片）”“（jinmyaigc 竖屏片）”：
+从这个仓库的 IntroFree（`src/intro-free/`）、北海宣传片 Butterworth（`src/butterworth/`）、槟城大桥片 PenangBridge（`src/penang/`）、jinmyaigc 竖屏片 JinmyPromo（`src/jinmy/`）和彩虹科普片 Rainbow（`src/rainbow/`）里总结出来的经验，分两份；后几条片子补的条目分别标了“（北海片）”“（槟城大桥片）”“（jinmyaigc 竖屏片）”“（彩虹片）”：
 
 - [动效.md](./动效.md)：镜头、转场、运动模糊、节拍同步、声画对齐、整体节奏——**一个镜头/一段画面怎么"动"起来**
 - [动画.md](./动画.md)：曲线、弹簧、打字、挤压拉伸、像素字、图层拆分——**单个元素怎么动**
@@ -15,6 +15,10 @@
 - （槟城大桥片）JIN 的提示词可能没出现在对话里：那次开头那段很长的提示词没显示，只看到“先让我发完所有图”。在问“你要什么”之前，先用 `list_events` 翻一遍会话记录。
 - （槟城大桥片）云端的网络策略会挡住维基百科、新闻网站（403）。事实改用搜索结果的摘要核对，在案例里写明“没有直接读原文”。
 - （jinmyaigc 竖屏片）JIN 说“不用问我,直接做”时就不问。要做的网站在云端打不开（代理 403）时，不猜 logo、品牌色、模板名、价格；名字只用字体打出来，案例里列出哪些没核对，交付时告诉 JIN 怎么在云端环境放行域名。
+
+**通用工具**（彩虹片）
+- `src/lib/`：`cam3d.ts`（第一人称针孔相机）、`FrameCanvas.tsx`（每帧重画的 canvas）、`spectrum.ts`（波长 → 颜色）。`scripts/lib/synth.ts`：合成器（贝尔、拨弦、铺底、贝斯、鼓、风声、上升音、雨声、混响、写 WAV），新片的配乐脚本可以直接 import。`scripts/stills.mjs`：任何 Composition 的批量静帧。
+- JIN 说“随意做”时不问，自己定题目和形式；选题时优先“能用代码算出来”的内容（几何、光路、轨道），画面里的数字直接由代码算，和资料对上再用。
 
 **字体**
 - 云端渲染浏览器访问不了 fonts.gstatic.com，字体要放 `public/fonts/`，用 `@remotion/fonts` 的 `loadFont()`。它自带 `delayRender()`，字体没加载完不会出帧；文件缺失会直接报错，不会悄悄换成系统字体。

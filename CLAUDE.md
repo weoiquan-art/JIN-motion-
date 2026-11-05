@@ -22,8 +22,9 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 | `Butterworth` | `src/butterworth/` | `out/butterworth.mp4` | `scripts/gen-audio-bw.ts` | 60 秒槟城北海宣传片 |
 | `PenangBridge` | `src/penang/`（默认 props 在 `src/Root.tsx`） | `out/penang-bridge.mp4`（第四版起 JIN 要求提交） | 外部 BGM `public/penang/audio/bgm.mp3`（不提交），拍点 `public/data/penang-bgm.json` | 68 秒槟城大桥历史科普，照片入片，卡现成 BGM；第二版：钩子开头，首尾接成 loop；第三版：宽银幕电影感，照片满屏运镜，地图、片名落日、夜景换成代码画面；第四版：除结尾一张施工照片外全部是代码画面；说明见 docs/NOTES.md |
 | `JinmyPromo` | `src/jinmy/` | `out/jinmyaigc-promo.mp4`（不提交，发文件给 JIN） | `scripts/gen-audio-jinmy.ts` | 26 秒 9:16 竖屏（1080×1920），JIN 的网站 jinmyaigc 的英文宣传片，用了网站的 3 条示例视频（`public/jinmy/`，不提交） |
+| `Rainbow` | `src/rainbow/`（通用部分在 `src/lib/`） | `out/rainbow.mp4` | `scripts/gen-audio-rainbow.ts`（用 `scripts/lib/synth.ts`） | 80 秒科普“彩虹为什么是圆的”，16:9，中文字幕；画面全部由 canvas 按物理计算画出（光线追踪、对日点 42° 锥面），没有任何素材 |
 
-前四条和 JinmyPromo 的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 30 帧／秒；除 JinmyPromo 是 1080×1920 竖屏外，都是 1920×1080。`Test`、`MyComp` 是脚手架，不用管。
+前四条、JinmyPromo 和 Rainbow 的配乐都写到 `public/audio/`；PenangBridge 用外部 BGM。都是 30 帧／秒；除 JinmyPromo 是 1080×1920 竖屏外，都是 1920×1080。`Test`、`MyComp` 是脚手架，不用管。
 
 ## 命令（在 claude.ai 云端容器里跑过）
 
@@ -36,6 +37,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - IntroFree 自检：`npm run check:intro-free`（节拍对齐、削波、静音段、每段响度）。
 - PenangBridge：`npm run fonts:penang`（改了文字就跑）、`npm run analyze:penang`（librosa 分析 BGM，要先 `pip install librosa soundfile --break-system-packages`）、`npm run render:penang-check`（540p 自检）、`npm run render:penang`（1080p）、`npm run render:penang-720`（从 1080p 缩）、`python3 scripts/penang/check-sync.py <成片> --click <输出>`（卡点量化检查和 click 预览）、`node scripts/penang/stills.mjs <目录> <缩放> <帧…>`（批量静帧）。官方 skill：`npx remotion skills add`（不提交）。
 - JinmyPromo：先把 3 条示例视频放成 `public/jinmy/clips/clip1.mp4`（一个角色在门口）、`clip4.mp4`（两个角色在门口）、`clip3.mp4`（量身高），再 `npm run prep:jinmy`（抽定格帧）；`npm run fonts:jinmy`（Fredoka）、`npm run audio:jinmy`、`npm run render:jinmy`、`node scripts/stills.mjs JinmyPromo <目录> <缩放> <帧…>`（通用批量静帧，任何 Composition 都能用）、`python3 scripts/jinmy/mix-check.py --measure out/jinmyaigc-promo.mp4`（分段响度；不带 `--measure` 是离线混音试原声增益，要 numpy）。
+- Rainbow：`npm run fonts:rainbow`（扫描 `src/rainbow/` 里的字，跳过注释）、`npm run audio:rainbow`、`npm run render:rainbow`、`node scripts/stills.mjs Rainbow <目录> <缩放> <帧…>`。物理数字在 `src/rainbow/optics.ts`，改折射率或波长，画面里的角度和标注跟着变。
 
 ## 硬规矩
 
@@ -61,4 +63,5 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - [2026-10-22 槟城北海 60 秒宣传片](docs/cases/2026-10-22-butterworth-promo-60s/case.md)：已交付，JIN 还没评价成片。
 - [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面）；JIN 觉得代码画面好，第四版只留结尾一张施工照片，其余全部代码画，第四版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
 - [2026-11-02 jinmyaigc 网站 26 秒竖屏宣传片](docs/cases/2026-11-02-jinmyaigc-promo/case.md)：JIN 说“全部由你决定,不用问我,直接做”；云端打不开网站（代理 403），只按 JIN 的描述和 3 条示例视频做；已交付，JIN 还没评价。
+- [2026-11-05 彩虹为什么是圆的（80 秒科普）](docs/cases/2026-11-05-rainbow-circle/case.md)：JIN 说“你随意做一个影片吧 科普也行”；Claude 自定题目和全部内容，画面全部按物理计算；已交付，JIN 还没评价。
 - IntroFree 的经验写在 docs/remotion，没有单独的案例记录；Intro、IntroV2 没有记录。

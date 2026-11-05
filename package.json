@@ -49,6 +49,9 @@
     "fonts:jinmy": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-jinmy.ts",
     "audio:jinmy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-jinmy.ts",
     "prep:jinmy": "mkdir -p public/jinmy/frames && npx remotion ffmpeg -loglevel error -y -ss 4.0 -i public/jinmy/clips/clip1.mp4 -frames:v 1 public/jinmy/frames/freeze.png",
-    "render:jinmy": "npm run render:cloud -- JinmyPromo out/jinmyaigc-promo.mp4 --codec=h264"
+    "render:jinmy": "npm run render:cloud -- JinmyPromo out/jinmyaigc-promo.mp4 --codec=h264",
+    "fonts:rainbow": "NODE_USE_ENV_PROXY=1 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-fonts-rainbow.ts",
+    "audio:rainbow": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-audio-rainbow.ts",
+    "render:rainbow": "npm run render:cloud -- Rainbow out/rainbow.mp4 --codec=h264"
   }
 }
