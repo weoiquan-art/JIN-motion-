@@ -7,7 +7,7 @@
 - 成片：`C:\Users\weoiq\Desktop\remotion\JIN-motion-\out\self-blame.mp4`，本仓库 [`out/self-blame.mp4`](../../../out/self-blame.mp4)（照 CLAUDE.md 用 `git add -f` 提交）。1920×1080，30 帧／秒，H.264（yuvj420p，和 IntroFree、北海片一样是 Remotion 的默认输出）；AAC 48 kHz 立体声；92.8 秒；19,974,602 字节（约 20 MB）。本页另存[每 2.5 秒一帧的联系表](contact-sheet-every-2.5s.jpg)和[转场帧](transitions.jpg)。
 - 创作者反馈：**未提供**。
 - 声音：Claude 听不到声音，只量了起音位置、响度、峰值和频谱（见“交付前自检”）。**配乐和音效好不好听、音量合不合适，没有人听过。**
-- 分支没有推送到 GitHub（JIN 只说“代码提交到新分支”），见“缺口”。
+- 代码、成片、配乐、音效和本页在提交 74c104a（分支 `claude/self-blame-explainer`，从默认分支 9ff1f4c 开出）；本页补提交号是之后的一个小提交。分支没有推送到 GitHub（JIN 只说“代码提交到新分支”），见“缺口”。
 
 文件指纹（SHA-256）：
 - 成片 `out/self-blame.mp4` `bcf46b9536541a525f1ca5349d422921b114be8abb77a2d6b4bdeac612439e6f`
