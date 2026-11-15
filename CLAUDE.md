@@ -47,6 +47,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - **每条片子一个时间表**（`timeline.ts`，IntroFree 另有 `beat.ts`），管时间、文字和关键帧；配乐脚本直接 import 它，声音按帧号对齐画面。配乐脚本是用 Node 直接跑的，所以这些文件只能 import 同样不依赖 React／Remotion 的文件，路径要写 `.ts` 后缀（IntroFree 的 `timeline.ts` import `beat.ts`、`content.ts` 就是这样）。
 - **动画是帧的纯函数**：不用 `useState`、`Math.random()`、`Date`；随机用 `hash`、`noise1`。运动模糊会传入小数帧，所有曲线都要对小数帧成立。
 - `out/` 在 `.gitignore` 里，成片要用 `git add -f out/<名字>.mp4`，和 wav、新下载的字体一起提交。单个文件要小于 100 MB（北海片 38 MB）。
+- **备用 BGM 不进仓库**：2026-11-09 JIN 给了一首备用卡点曲（抖音音频，132 BPM，1:31.47 进拍，还没有片子用），音频、拍点 JSON 和说明在 JIN 电脑上的 `C:/Users/weoiq/Desktop/remotion/BGM备用/抖音2026119-498792/`（仓库外，先读其中的 说明.md）；版权不明，用时拷进 `.gitignore` 里的目录。
 - **用了别人的照片或音乐的片子（PenangBridge）不提交素材**：`public/penang/images/`、`public/penang/audio/` 在 `.gitignore` 里。成片原本也不提交；第四版 JIN 知道仓库公开、成片里有别人的 BGM 和照片后，说“推吧”，所以 `out/penang-bridge.mp4` 提交了。
 
 ## 做新片的流程
@@ -64,5 +65,5 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 
 - [2026-10-22 槟城北海 60 秒宣传片](docs/cases/2026-10-22-butterworth-promo-60s/case.md)：已交付，JIN 还没评价成片。
 - [2026-10-22 槟城大桥历史科普](docs/cases/2026-10-22-penang-bridge-60s/case.md)：第一版云端无人值守完成；JIN 看完要了钩子开头和首尾 loop，做了第二版（68 秒）；JIN 说第二版“像 PPT”，做了第三版（宽银幕、满屏运镜、代码地图和代码画面）；JIN 觉得代码画面好，第四版只留结尾一张施工照片，其余全部代码画，第四版 JIN 还没评价；复盘在 [docs/NOTES.md](docs/NOTES.md)。
-- [2026-11-05 心理科普“为什么被责怪时先怀疑自己”](docs/cases/2026-11-05-self-blame-explainer/case.md)：JIN 定了题目和讲法，其余由 Claude 决定、不问；在 JIN 的 Windows 电脑上本地完成，分支 `claude/self-blame-explainer` 只在本地提交、没有推送；已交付，JIN 还没评价。
+- [2026-11-05 心理科普“为什么被责怪时先怀疑自己”](docs/cases/2026-11-05-self-blame-explainer/case.md)：JIN 定了题目和讲法，其余由 Claude 决定、不问；在 JIN 的 Windows 电脑上本地完成，分支 `claude/self-blame-explainer`（2026-11-15 JIN 说“存 github”后推送，没有并入默认分支）；已交付，JIN 还没评价。
 - IntroFree 的经验写在 docs/remotion，没有单独的案例记录；Intro、IntroV2 没有记录。
