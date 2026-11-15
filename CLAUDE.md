@@ -47,7 +47,7 @@ JIN（AI 视频创作者）的代码动画仓库：用 Remotion 写画面，用�
 - **每条片子一个时间表**（`timeline.ts`，IntroFree 另有 `beat.ts`），管时间、文字和关键帧；配乐脚本直接 import 它，声音按帧号对齐画面。配乐脚本是用 Node 直接跑的，所以这些文件只能 import 同样不依赖 React／Remotion 的文件，路径要写 `.ts` 后缀（IntroFree 的 `timeline.ts` import `beat.ts`、`content.ts` 就是这样）。
 - **动画是帧的纯函数**：不用 `useState`、`Math.random()`、`Date`；随机用 `hash`、`noise1`。运动模糊会传入小数帧，所有曲线都要对小数帧成立。
 - `out/` 在 `.gitignore` 里，成片要用 `git add -f out/<名字>.mp4`，和 wav、新下载的字体一起提交。单个文件要小于 100 MB（北海片 38 MB）。
-- **备用 BGM 不进仓库**：2026-11-09 JIN 给了一首备用卡点曲（抖音音频，132 BPM，1:31.47 进拍，还没有片子用），音频、拍点 JSON 和说明在 JIN 电脑上的 `C:/Users/weoiq/Desktop/remotion/BGM备用/抖音2026119-498792/`（仓库外，先读其中的 说明.md）；版权不明，用时拷进 `.gitignore` 里的目录。
+- **备用 BGM 不进仓库**：2026-11-09 JIN 给了一首备用卡点曲（抖音音频，132 BPM，1:31.47 进拍，还没有片子用），说明、拍点 JSON 和分析脚本在 [docs/bgm/抖音2026119-498792/](docs/bgm/抖音2026119-498792/说明.md)；音频 `bgm.wav` 版权不明，只在 JIN 电脑上的 `C:/Users/weoiq/Desktop/remotion/BGM备用/抖音2026119-498792/`，用时拷进 `.gitignore` 里的目录。
 - **用了别人的照片或音乐的片子（PenangBridge）不提交素材**：`public/penang/images/`、`public/penang/audio/` 在 `.gitignore` 里。成片原本也不提交；第四版 JIN 知道仓库公开、成片里有别人的 BGM 和照片后，说“推吧”，所以 `out/penang-bridge.mp4` 提交了。
 
 ## 做新片的流程
